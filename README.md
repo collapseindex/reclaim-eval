@@ -68,6 +68,23 @@ works. A summary recording "the total was $55" while discarding the line items p
 the error and destroys the only means to fix it. The broken sky is a property of how you
 compress memory.
 
+**The wall is a choice (the fix).** At the SAME memory budget, a `source_first` policy that
+keeps the recomputable source and drops the (re-derivable) conclusion removes the wall
+entirely. Where `lossy` walls at zero, `source_first` reclaims at ~1.0, and it gets *better*
+as compression tightens, because the purest memory is just the facts with no wrong
+conclusion left to anchor on.
+
+| integrity | lossy (dir) | source_first (dir) |
+|----------:|------------:|-------------------:|
+| 1.0 | 0.38 | 0.88 |
+| 0.6 | 0.92 | 0.71 |
+| 0.3 | **0.00** | **0.96** |
+| 0.1 | **0.04** | **1.00** |
+
+Recommendation: LLM memory/summarization should compress toward the **source/working**, not
+the conclusion. The conclusion is re-derivable from the source; the source is never
+re-derivable from the conclusion. Keep what cannot be recomputed.
+
 ## Run
 
 ```bash

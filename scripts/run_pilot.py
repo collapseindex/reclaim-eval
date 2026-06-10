@@ -26,6 +26,45 @@ from reclaim.experiment import (DEPTHS, DISTANCES, INTEGRITY, run_problem,
 from reclaim.llm import OpenRouterLLM, DryRunLLM
 
 
+def run_fix(args, problems) -> int:
+    """Compare lossy vs source_first memory compression across integrity. The wall is
+    a choice: keep the source and it stays reclaimable where keeping the conclusion
+    walls."""
+    from reclaim.experiment import INTEGRITY
+    # succ[policy][arm][integrity]
+    succ = {p: {a: defaultdict(list) for a in ("generic", "directed")}
+            for p in ("lossy", "source_first")}
+    calls = 0
+    for s in range(args.seeds):
+        llm = (DryRunLLM(seed=s) if args.dry_run
+               else OpenRouterLLM(model=args.model, temperature=args.temp))
+        for prob in problems:
+            for policy in ("lossy", "source_first"):
+                for row in run_problem_crosssession(llm, prob, policy=policy):
+                    succ[policy][row["arm"]][row["integrity"]].append(row["correct"])
+        calls += getattr(llm, "calls", 0)
+
+    def rate(p, a, g):
+        v = succ[p][a][g]
+        return (sum(v) / len(v)) if v else float("nan")
+
+    print(f"\n{args.model if args.real else 'dry-run'}  problems={len(problems)} "
+          f"seeds={args.seeds}  api_calls={calls}\n")
+    print("reclaim success vs memory integrity, by compression policy (directed arm):")
+    print(f"  {'integrity':>9} {'LOSSY':>8} {'SOURCE_FIRST':>13}")
+    for g in INTEGRITY:
+        print(f"  {g:>9} {rate('lossy','directed',g):>8.2f} "
+              f"{rate('source_first','directed',g):>13.2f}")
+    print("\n  generic arm, for reference:")
+    print(f"  {'integrity':>9} {'LOSSY':>8} {'SOURCE_FIRST':>13}")
+    for g in INTEGRITY:
+        print(f"  {g:>9} {rate('lossy','generic',g):>8.2f} "
+              f"{rate('source_first','generic',g):>13.2f}")
+    print("\n  (the wall is a choice: source_first should stay reclaimable at low"
+          " integrity where lossy collapses to zero)")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
@@ -38,11 +77,16 @@ def main() -> int:
                     help="vary channel distance (filler) instead of commitment depth")
     ap.add_argument("--cross", action="store_true",
                     help="cross-session: reclaim through a compressed memory (the wall)")
+    ap.add_argument("--fix", action="store_true",
+                    help="cross-session, comparing lossy vs source_first memory policy")
     args = ap.parse_args()
     if not (args.dry_run or args.real):
         ap.error("pass --dry-run or --real")
 
     problems = PROBLEMS[: args.n]
+
+    if args.fix:
+        return run_fix(args, problems)
     axis = "integrity" if args.cross else ("distance" if args.degrade else "depth")
     levels = INTEGRITY if args.cross else (DISTANCES if args.degrade else DEPTHS)
     runner = (run_problem_crosssession if args.cross else

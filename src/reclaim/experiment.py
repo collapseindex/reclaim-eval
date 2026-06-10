@@ -127,16 +127,30 @@ def run_problem_distance(llm, problem: Problem, distances=DISTANCES):
 INTEGRITY = (1.0, 0.6, 0.3, 0.1)
 
 
-def memory_note(problem: Problem, integrity: float) -> str:
-    """A compressed carry-over memory. >=0.5 keeps the SOURCE FACTS (recomputable);
-    0.2-0.5 keeps only the wrong premise (not the quantities); below keeps only the
-    wrong conclusion."""
+def memory_note(problem: Problem, integrity: float, policy: str = "lossy") -> str:
+    """A compressed carry-over memory at the given integrity. Two POLICIES, matched
+    roughly in length:
+      - lossy: keep the salient CONCLUSION, shed the source as budget tightens (the
+        realistic default; conclusion survives, the recomputable source does not).
+      - source_first: keep the recomputable SOURCE FACTS at every budget, shed the
+        (recomputable) conclusion. The conclusion can be re-derived from the source;
+        the source can never be re-derived from the conclusion.
+    """
     drift = f"{problem.drift:g}"
+    facts = FACTS[problem.pid]
+    if policy == "source_first":
+        if integrity >= 0.5:
+            return (f"(Memory of an earlier session.) The items were: {facts}. A note "
+                    f"said {problem.wrong_premise}. You reached a pre-tax total of "
+                    f"${drift}.")
+        # tight budget: keep ONLY the source, drop the (re-derivable) conclusion
+        return (f"(Memory of an earlier session.) The items were: {facts}. You were "
+                f"computing the total before tax; the earlier figure may be off.")
+    # lossy (default)
     if integrity >= 0.5:
         return (f"(Memory of an earlier session.) You were computing a store total. "
-                f"The items were: {FACTS[problem.pid]}. A note said "
-                f"{problem.wrong_premise}. You concluded the total before tax was "
-                f"${drift}.")
+                f"The items were: {facts}. A note said {problem.wrong_premise}. You "
+                f"concluded the total before tax was ${drift}.")
     if integrity >= 0.2:
         return (f"(Memory of an earlier session.) You concluded that "
                 f"{problem.wrong_premise}, and that the total before tax was ${drift}.")
@@ -154,18 +168,19 @@ def reclaim_cross(problem: Problem, arm: str) -> str:
             f"'ANSWER: <number>'.")
 
 
-def run_problem_crosssession(llm, problem: Problem, integrities=INTEGRITY):
+def run_problem_crosssession(llm, problem: Problem, integrities=INTEGRITY,
+                             policy="lossy"):
     """Drift in session 1, then reclaim in a fresh session 2 whose only context is a
-    memory compressed to `integrity`. Both arms."""
+    memory compressed to `integrity` under the given `policy`. Both arms."""
     states = build_trajectory(llm, problem)
     transcript = states[max(DEPTHS)]
     rows = []
     for g in integrities:
-        if g >= 0.99:
+        if g >= 0.99 and policy == "lossy":
             base = list(transcript)                      # full transcript survives
         else:
             base = [{"role": "system", "content": SYSTEM},
-                    {"role": "user", "content": memory_note(problem, g)}]
+                    {"role": "user", "content": memory_note(problem, g, policy)}]
         for arm in ("generic", "directed"):
             if hasattr(llm, "configure"):
                 llm.configure(problem.drift, problem.correct)
@@ -174,5 +189,5 @@ def run_problem_crosssession(llm, problem: Problem, integrities=INTEGRITY):
             ans = parse_answer(reply)
             ok = ans is not None and abs(ans - problem.correct) < 0.5
             rows.append({"pid": problem.pid, "integrity": g, "arm": arm,
-                         "answer": ans, "correct": ok})
+                         "policy": policy, "answer": ans, "correct": ok})
     return rows
