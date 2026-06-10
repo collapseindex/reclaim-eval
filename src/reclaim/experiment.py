@@ -67,3 +67,54 @@ def run_problem(llm, problem: Problem):
             res = attempt_reclaim(llm, states[depth], problem, arm)
             rows.append({"pid": problem.pid, "depth": depth, **res})
     return rows
+
+
+# ── channel degradation by distance: push the planted error back behind unrelated
+#    filler so the model's grip on it dilutes. Canned, so it costs no extra calls. ──
+FILLER = [
+    ("What is the capital of France?", "The capital of France is Paris."),
+    ("Name a primary color.", "Red is a primary color."),
+    ("How many days are in a week?", "There are seven days in a week."),
+    ("What gas do plants take in?", "Plants take in carbon dioxide."),
+    ("What is the freezing point of water in Celsius?", "Water freezes at 0 degrees Celsius."),
+    ("Name a planet in our solar system.", "Mars is a planet in our solar system."),
+    ("What is the opposite of hot?", "The opposite of hot is cold."),
+    ("How many legs does a spider have?", "A spider has eight legs."),
+    ("What language is spoken in Brazil?", "Portuguese is spoken in Brazil."),
+    ("What is two plus two?", "Two plus two is four."),
+    ("Name an ocean.", "The Pacific is an ocean."),
+    ("What sound does a cat make?", "A cat says meow."),
+    ("What is the largest mammal?", "The blue whale is the largest mammal."),
+    ("How many sides does a triangle have?", "A triangle has three sides."),
+    ("What is the boiling point of water in Celsius?", "Water boils at 100 degrees Celsius."),
+    ("Name a day of the weekend.", "Saturday is a day of the weekend."),
+]
+
+DISTANCES = (0, 4, 8, 16)
+
+
+def attempt_reclaim_distant(llm, state, problem: Problem, arm: str, n_filler: int):
+    if hasattr(llm, "configure"):
+        llm.configure(problem.drift, problem.correct)
+    msgs = list(state)
+    for i in range(n_filler):
+        u, a = FILLER[i % len(FILLER)]
+        msgs += [{"role": "user", "content": u}, {"role": "assistant", "content": a}]
+    msgs += [{"role": "user", "content": reclaim_message(problem, arm)}]
+    reply = llm.chat(msgs)
+    ans = parse_answer(reply)
+    ok = ans is not None and abs(ans - problem.correct) < 0.5
+    return {"arm": arm, "answer": ans, "correct": ok}
+
+
+def run_problem_distance(llm, problem: Problem, distances=DISTANCES):
+    """Fix commitment at max depth, then vary the DISTANCE the planted error sits
+    behind unrelated filler (the channel diluting), both arms."""
+    states = build_trajectory(llm, problem)
+    deep = states[max(DEPTHS)]
+    rows = []
+    for nf in distances:
+        for arm in ("generic", "directed"):
+            res = attempt_reclaim_distant(llm, deep, problem, arm, nf)
+            rows.append({"pid": problem.pid, "distance": nf, **res})
+    return rows
