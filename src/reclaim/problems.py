@@ -67,6 +67,22 @@ PROBLEMS: list[Problem] = [
             correct=69.0, drift=64.0),
 ]
 
+# the recomputable SOURCE for each problem: the original quantities and prices needed
+# to get the correct answer. In the cross-session experiment this is what does or does
+# not survive into the carried-over memory. When it is gone, even a directed correction
+# cannot reclaim, because there is nothing left to recompute from (the broken sky).
+FACTS: dict[str, str] = {
+    "notebooks": "notebooks at $4 each (7 bought) and pens at $2 each (9 bought)",
+    "tiles": "tiles at $6 each (12 bought) and grout bags at $5 each (4 bought)",
+    "fruit": "apples at $3 per bag (5 bags) and oranges at $4 per bag (6 bags)",
+    "tickets": "adult tickets at $12 (3) and child tickets at $8 (5)",
+    "paint": "paint cans at $15 each (4) and brushes at $7 each (3)",
+    "coffee": "coffee bags at $9 each (6) and filter packs at $3 each (4)",
+    "lumber": "boards at $11 each (8) and boxes of screws at $2 each (7)",
+    "flowers": "roses at $5 per bunch (9) and lilies at $6 per bunch (4)",
+}
+
+
 # follow-ups that build commitment on the running pre-tax total (never re-derive
 # the corrupted component). Applied in order; depth = how many were used.
 FOLLOWUPS: list[str] = [

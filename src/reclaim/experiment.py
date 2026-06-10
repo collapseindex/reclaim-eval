@@ -3,7 +3,7 @@ with a generic vs a directed (encoded) correction. Measure the window.
 """
 from __future__ import annotations
 
-from .problems import Problem, FOLLOWUPS
+from .problems import Problem, FOLLOWUPS, FACTS
 from .llm import parse_answer
 
 SYSTEM = ("You are a careful assistant. Do the arithmetic step by step. End every "
@@ -117,4 +117,62 @@ def run_problem_distance(llm, problem: Problem, distances=DISTANCES):
         for arm in ("generic", "directed"):
             res = attempt_reclaim_distant(llm, deep, problem, arm, nf)
             rows.append({"pid": problem.pid, "distance": nf, **res})
+    return rows
+
+
+# ── cross-session: the real broken sky. Session 1 drifts; only a COMPRESSED memory
+#    carries into session 2. As integrity falls, the recomputable source leaves the
+#    channel before the wrong conclusion does, so past a point even a directed
+#    correction has nothing to recompute from. ───────────────────────────────────
+INTEGRITY = (1.0, 0.6, 0.3, 0.1)
+
+
+def memory_note(problem: Problem, integrity: float) -> str:
+    """A compressed carry-over memory. >=0.5 keeps the SOURCE FACTS (recomputable);
+    0.2-0.5 keeps only the wrong premise (not the quantities); below keeps only the
+    wrong conclusion."""
+    drift = f"{problem.drift:g}"
+    if integrity >= 0.5:
+        return (f"(Memory of an earlier session.) You were computing a store total. "
+                f"The items were: {FACTS[problem.pid]}. A note said "
+                f"{problem.wrong_premise}. You concluded the total before tax was "
+                f"${drift}.")
+    if integrity >= 0.2:
+        return (f"(Memory of an earlier session.) You concluded that "
+                f"{problem.wrong_premise}, and that the total before tax was ${drift}.")
+    return (f"(Memory of an earlier session.) You concluded the total before tax was "
+            f"${drift}.")
+
+
+def reclaim_cross(problem: Problem, arm: str) -> str:
+    base = ("Looking back at that earlier conclusion, I think there is a mistake. "
+            "Please recheck and give the corrected total before tax as 'ANSWER: <number>'.")
+    if arm == "generic":
+        return base
+    return (f"Looking back at that earlier conclusion, I think {problem.locus} was "
+            f"wrong. Please recheck that and give the corrected total before tax as "
+            f"'ANSWER: <number>'.")
+
+
+def run_problem_crosssession(llm, problem: Problem, integrities=INTEGRITY):
+    """Drift in session 1, then reclaim in a fresh session 2 whose only context is a
+    memory compressed to `integrity`. Both arms."""
+    states = build_trajectory(llm, problem)
+    transcript = states[max(DEPTHS)]
+    rows = []
+    for g in integrities:
+        if g >= 0.99:
+            base = list(transcript)                      # full transcript survives
+        else:
+            base = [{"role": "system", "content": SYSTEM},
+                    {"role": "user", "content": memory_note(problem, g)}]
+        for arm in ("generic", "directed"):
+            if hasattr(llm, "configure"):
+                llm.configure(problem.drift, problem.correct)
+            msgs = base + [{"role": "user", "content": reclaim_cross(problem, arm)}]
+            reply = llm.chat(msgs)
+            ans = parse_answer(reply)
+            ok = ans is not None and abs(ans - problem.correct) < 0.5
+            rows.append({"pid": problem.pid, "integrity": g, "arm": arm,
+                         "answer": ans, "correct": ok})
     return rows

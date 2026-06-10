@@ -83,6 +83,14 @@ class DryRunLLM:
         last = messages[-1]["content"].lower()
         # reclaim turn? simulate the window: success prob decays with depth, +directed
         if "recheck" in last or "wrong" in last:
+            # the broken sky: if the recomputable source is not in context (the full
+            # transcript's question uses "buys"; the rich memory note says "items
+            # were"), neither arm can reclaim, no matter how directed.
+            facts_present = any(("items were" in m["content"]) or (" buys " in m["content"])
+                                for m in messages)
+            if not facts_present:
+                val = self._correct_val if self._rng.random() < 0.05 else self._drift_val
+                return f"I am not sure I have enough to recompute. ANSWER: {val}"
             depth = self._depth_hint(messages)
             directed = "subtotal" in last or "tickets" in last  # locus named -> directed
             base = 0.95 if directed else 0.85

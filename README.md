@@ -49,6 +49,25 @@ signal overcomes. A real broken sky needs genuine memory loss between units: the
 | 4 | 0.58 | 0.71 |   | 8 | 0.46 | 0.83 |
 | 8 | 0.04 | 0.50 |   | 16 | 0.50 | 0.79 |
 
+**The wall transfers across sessions.** When session 1's drift carries into session 2 only
+as a COMPRESSED memory, reclaim holds while the memory keeps the recomputable source, and
+collapses to zero, a sharp cliff, once the memory is compressed past it. Even directed
+correction dies there: nothing left to recompute from. The vector-tissue broken sky, on a
+real LLM.
+
+| memory integrity | generic | directed | what survives |
+|-----------------:|--------:|---------:|---|
+| 1.0 | 0.46 | 0.67 | full transcript (anchored) |
+| 0.6 | 0.92 | 0.83 | source facts kept -> reclaimable |
+| 0.3 | 0.00 | 0.00 | only the wrong premise -> **wall** |
+| 0.1 | 0.00 | 0.00 | only the wrong conclusion -> **wall** |
+
+**Practical implication.** Lossy memory that keeps conclusions but drops the source makes a
+wrong conclusion permanently uncorrectable, which is how most LLM memory / summarization
+works. A summary recording "the total was $55" while discarding the line items preserves
+the error and destroys the only means to fix it. The broken sky is a property of how you
+compress memory.
+
 ## Run
 
 ```bash

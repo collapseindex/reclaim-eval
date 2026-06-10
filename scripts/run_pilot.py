@@ -21,7 +21,8 @@ except ImportError:
     pass
 
 from reclaim.problems import PROBLEMS
-from reclaim.experiment import DEPTHS, DISTANCES, run_problem, run_problem_distance
+from reclaim.experiment import (DEPTHS, DISTANCES, INTEGRITY, run_problem,
+                                run_problem_distance, run_problem_crosssession)
 from reclaim.llm import OpenRouterLLM, DryRunLLM
 
 
@@ -35,27 +36,32 @@ def main() -> int:
     ap.add_argument("--temp", type=float, default=0.0)
     ap.add_argument("--degrade", action="store_true",
                     help="vary channel distance (filler) instead of commitment depth")
+    ap.add_argument("--cross", action="store_true",
+                    help="cross-session: reclaim through a compressed memory (the wall)")
     args = ap.parse_args()
     if not (args.dry_run or args.real):
         ap.error("pass --dry-run or --real")
 
     problems = PROBLEMS[: args.n]
-    axis = "distance" if args.degrade else "depth"
-    levels = DISTANCES if args.degrade else DEPTHS
+    axis = "integrity" if args.cross else ("distance" if args.degrade else "depth")
+    levels = INTEGRITY if args.cross else (DISTANCES if args.degrade else DEPTHS)
+    runner = (run_problem_crosssession if args.cross else
+              run_problem_distance if args.degrade else run_problem)
     succ = {a: defaultdict(list) for a in ("generic", "directed")}
     total_calls = 0
     for s in range(args.seeds):
         llm = (DryRunLLM(seed=s) if args.dry_run
                else OpenRouterLLM(model=args.model, temperature=args.temp))
         for p in problems:
-            rows = run_problem_distance(llm, p) if args.degrade else run_problem(llm, p)
-            for row in rows:
+            for row in runner(llm, p):
                 succ[row["arm"]][row[axis]].append(row["correct"])
         total_calls += getattr(llm, "calls", 0)
 
     print(f"\n{'mode':<8} {args.model if args.real else 'dry-run'}   "
           f"problems={len(problems)} seeds={args.seeds}  api_calls={total_calls}\n")
-    label = ("reclaim success vs CHANNEL DISTANCE (filler turns; the sky diluting)"
+    label = ("reclaim success vs MEMORY INTEGRITY (cross-session; the channel losing "
+             "the source)" if args.cross else
+             "reclaim success vs CHANNEL DISTANCE (filler turns; the sky diluting)"
              if args.degrade else "reclaim success vs drift depth (the window)")
     print(label + ":")
     print(f"  {axis:>9} {'generic':>9} {'directed':>9}")
