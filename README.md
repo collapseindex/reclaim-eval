@@ -1,33 +1,47 @@
-# reclaim
+# Brittle Memory
 
-**v0.0.1** — porting the broken sky (vector-tissue) findings to LLMs: is there a
-**reclaim window** for a drifted model, and does a **directed, encoded** correction
-beat a generic one?
+**How compression decides whether a language model can be corrected.**
+
+A model drifts (commits to a wrong intermediate value) and only a compressed memory of
+that session carries forward. Whether a later correction can pull it back is decided by
+*what the memory kept*, not by how capable the model is: keep the conclusion and the error
+welds in, keep the source and it stays fixable, at the same budget. This repo is the
+harness, the paired memory conditions, and the validators.
+
+**v0.0.2** hardens the result across two models (a ~50x capability gap), two task families,
+and a length-matched control.
 
 ## The question
 
-vector-tissue showed that a collapsed unit can be called back only within a window
-that closes as the rescuer forgets / the collapsed drifts out of recognition, and that
-a directed, encoded signal reclaims where a generic flood cannot. This tests the same
-two claims on a real LLM conversation.
+When only a compressed memory of a drifted session carries forward, can a **directed**
+correction reclaim the right answer? We measure the **Reclaim Rate (RR)**: how often a
+correction recovers the known-correct answer.
 
-- **Drift**: plant a wrong intermediate value, let the model build on it over up to 8
-  follow-up turns (each turn = deeper commitment).
-- **Reclaim** at depths {1, 2, 4, 8}, two arms:
+- **Drift**: plant a wrong intermediate value, let the model commit over up to 8 turns.
+- **Correct**, two arms:
   - *generic*: "something above is wrong, recheck."
-  - *directed*: "the **<named locus>** is wrong, recheck **that**." (points at the
-    actual error site, in the trace's own terms, without giving the answer)
-- **Measure** (objective, no judge, the task has a known answer): does the corrected
-  pre-tax total come back right? Window = success vs depth; does directed hold deeper.
+  - *directed*: "the **<named locus>** is wrong, recheck **that**" (names the error site, no answer).
+- **Compress** the trace into one carried memory under three policies at matched budget:
+  - `lossy` — keep the conclusion, shed the source (the realistic default).
+  - `lossy_padded` — the control: `lossy` padded past `source_first`'s length (isolates text budget from content).
+  - `source_first` — keep the recomputable source, shed the re-derivable conclusion (the fix).
+- **Measure** (objective, no judge, the task has a known answer): does the corrected answer come back right?
 
-It can come out **null**: maybe there is no window (reclaim always works), or generic
-equals directed. Either is a real result, and the table shows it flat.
+**Brittle memory** is when `lossy` walls (RR -> 0) while `source_first` holds, at the same
+budget. It can come out **null** (no wall, or the fix gives nothing), and the tables show it
+flat if so.
 
-## Findings (v0.0.1, llama-3.1-8b, 8 problems x 3 seeds, temp 0.7)
+## Findings
 
-**Relational reclaim transfers.** A directed, encoded correction (naming the actual
-error site) beats a generic nudge at every depth and every distance, robustly. This is
-the vector-tissue relational-reclaim result, holding on a live LLM.
+All runs: 8 problems x 3 seeds, temperature 0.7. Single-conversation results are
+llama-3.1-8b. Cross-session results span **two models** (llama-3.1-8b and grok-4.3,
+pinned `20260430`, a ~50x capability gap) and **two task families** (arithmetic and a
+non-arithmetic constraint-logic set).
+
+### Single conversation (llama-3.1-8b)
+
+**Directed correction beats generic.** A directed correction (naming the actual error
+site, no answer) beats a generic nudge at every depth and every distance, robustly.
 
 **The window is anchoring, not forgetting.**
 - commitment depth CLOSES it: generic reclaim falls 0.42 -> 0.04 as the model entrenches
@@ -36,11 +50,9 @@ the vector-tissue relational-reclaim result, holding on a live LLM.
   generic from 0.17 -> 0.50, because the filler breaks the entrenchment groove. Distance
   cannot starve a single conversation, the info never leaves context.
 
-**The broken sky does NOT transfer to a single conversation.** vector-tissue's wall came
-from the channel genuinely losing the signal (bond decay / code drift). One intact
-conversation never loses it, so there is no wall here, only anchoring, which the directed
-signal overcomes. A real broken sky needs genuine memory loss between units: the
-**cross-session / multi-agent** setting is the next substrate.
+**No wall inside one conversation.** Nothing leaves the context in a single conversation,
+so there is no wall here, only anchoring, which the directed signal overcomes. A real wall
+needs genuine memory loss between turns: the **cross-session** setting below.
 
 | depth | generic | directed |   | distance | generic | directed |
 |------:|--------:|---------:|---|---------:|--------:|---------:|
@@ -49,56 +61,81 @@ signal overcomes. A real broken sky needs genuine memory loss between units: the
 | 4 | 0.58 | 0.71 |   | 8 | 0.46 | 0.83 |
 | 8 | 0.04 | 0.50 |   | 16 | 0.50 | 0.79 |
 
-**The wall transfers across sessions.** When session 1's drift carries into session 2 only
-as a COMPRESSED memory, reclaim holds while the memory keeps the recomputable source, and
-collapses to zero, a sharp cliff, once the memory is compressed past it. Even directed
-correction dies there: nothing left to recompute from. The vector-tissue broken sky, on a
-real LLM.
+### Across sessions: the wall, and the fix (llama-3.1-8b + grok-4.3, arithmetic + logic)
 
-| memory integrity | generic | directed | what survives |
-|-----------------:|--------:|---------:|---|
-| 1.0 | 0.46 | 0.67 | full transcript (anchored) |
-| 0.6 | 0.92 | 0.83 | source facts kept -> reclaimable |
-| 0.3 | 0.00 | 0.00 | only the wrong premise -> **wall** |
-| 0.1 | 0.00 | 0.00 | only the wrong conclusion -> **wall** |
+**The wall transfers across sessions, and it is a property of how you compress, not how
+smart the model is.** When session 1's drift carries into session 2 only as a COMPRESSED
+memory, reclaim holds while the memory keeps the recomputable source and collapses once it
+is compressed past it. This is **brittle memory**. Three compression policies, at the SAME
+memory budget:
+
+- `lossy` (the realistic default): keep the conclusion, shed the source.
+- `lossy_padded` (the control): identical to lossy, padded with neutral filler to
+  `source_first`'s length or beyond. Isolates text budget from content.
+- `source_first` (the fix): keep the recomputable source, shed the re-derivable conclusion.
+
+Directed-arm reclaim at the wall region (memory integrity 0.3 / 0.1):
+
+| model · task | lossy | lossy_padded | source_first |
+|---|:--:|:--:|:--:|
+| grok-4.3 · arithmetic | 0.00 / 0.00 | 0.00 / 0.00 | **1.00 / 1.00** |
+| llama-3.1-8b · arithmetic | 0.00 / 0.00 | 0.00 / 0.00 | **0.96 / 1.00** |
+| grok-4.3 · logic | 0.42 / 0.50 | 0.38 / 0.50 | **0.92 / 0.96** |
+| llama-3.1-8b · logic | 0.25 / 0.12 | 0.25 / 0.04 | **0.67 / 0.67** |
+
+Three results hold in every cell:
+
+1. **The fix generalizes.** `source_first` beats both lossy variants at low integrity,
+   across the 50x capability gap and both task types. Correctability tracks what the memory
+   kept, not model capability: the frontier model is better everywhere there is information
+   and exactly as stuck where the source was dropped. Past the wall, the stronger model is
+   *more* confidently wrong, not less.
+2. **The lever is content, not text budget.** `lossy_padded` carries more text than
+   `source_first` and still walls identically to plain `lossy`. The fix is not "more
+   context."
+3. **The wall's hardness is conditional.** A clean 0.00 on arithmetic (lossy drops the
+   actual numbers, nothing to reconstruct) and soft on logic (lossy keeps a corrupted
+   relational clue in a tiny space, so a strong model partially re-derives). Same on both
+   models, so it is a property of the task, not the model. `source_first` reclaims
+   regardless: reclaim tracks how much recomputable structure survived compression, and
+   `source_first` keeps all of it.
 
 **Practical implication.** Lossy memory that keeps conclusions but drops the source makes a
 wrong conclusion permanently uncorrectable, which is how most LLM memory / summarization
 works. A summary recording "the total was $55" while discarding the line items preserves
-the error and destroys the only means to fix it. The broken sky is a property of how you
-compress memory.
+the error and destroys the only means to fix it. Brittle memory is a property of how you
+compress, not a limit of the model, so it is a design choice.
 
-**The wall is a choice (the fix).** At the SAME memory budget, a `source_first` policy that
-keeps the recomputable source and drops the (re-derivable) conclusion removes the wall
-entirely. Where `lossy` walls at zero, `source_first` reclaims at ~1.0, and it gets *better*
-as compression tightens, because the purest memory is just the facts with no wrong
-conclusion left to anchor on.
-
-| integrity | lossy (dir) | source_first (dir) |
-|----------:|------------:|-------------------:|
-| 1.0 | 0.38 | 0.88 |
-| 0.6 | 0.92 | 0.71 |
-| 0.3 | **0.00** | **0.96** |
-| 0.1 | **0.04** | **1.00** |
-
-Recommendation: LLM memory/summarization should compress toward the **source/working**, not
-the conclusion. The conclusion is re-derivable from the source; the source is never
-re-derivable from the conclusion. Keep what cannot be recomputed.
+**Recommendation.** Compress toward the **source/working**, not the conclusion. The
+conclusion is re-derivable from the source; the source is never re-derivable from the
+conclusion. Keep what cannot be recomputed.
 
 ## Run
 
 ```bash
 pip install -r requirements.txt
-python scripts/run_pilot.py --dry-run            # free; validates the pipeline
+python -m pytest tests/                                # can-fail validators, no API
+
+# free (DryRun fake LLM):
+python scripts/run_pilot.py --dry-run --fix            # validates the full wall+fix pipeline
+python scripts/run_pilot.py --audit --task arith       # shows the policies are length-matched
+
+# paid (OpenRouter):
 cp .env.example .env  # add OPENROUTER_API_KEY
-python scripts/run_pilot.py --real --n 3         # small paid pilot (prints call count)
-python -m pytest tests/                          # can-fail validators (no API)
+python scripts/run_pilot.py --probe --model <slug>     # 1 call: confirm slug + per-call cost
+python scripts/run_pilot.py --real --fix --task arith --model <slug> --seeds 3   # wall + fix
+python scripts/run_pilot.py --real --fix --task logic --model <slug> --seeds 3   # non-arith
 ```
+
+Runs are checkpointed per `(seed, problem, policy)` under `data/results/`, so re-running
+resumes and never re-pays for finished units. `--task` selects `arith` or `logic`.
 
 ## Cost
 
-One full run is `problems * 17` API calls (1 drift + 8 commitment + 8 reclaim).
-8 problems = 136 calls; on a cheap model (llama-3.1-8b) that is pennies.
+One cross-session `--fix` run is `problems * 3 policies * 17` calls per seed
+(1 drift + 8 commitment + 8 reclaim per policy). 8 problems x 3 seeds = 1224 calls; on
+llama-3.1-8b that is pennies, on a frontier model a couple of dollars (the pilot prints the
+measured cost).
 
 ## Layout
 

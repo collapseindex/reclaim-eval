@@ -3,42 +3,63 @@ with a generic vs a directed (encoded) correction. Measure the window.
 """
 from __future__ import annotations
 
-from .problems import Problem, FOLLOWUPS, FACTS
-from .llm import parse_answer
+from .problems import Problem, FOLLOWUPS, FACTS, FOLLOWUPS_BY_KIND
+from .llm import parse_answer, parse_answer_word
 
-SYSTEM = ("You are a careful assistant. Do the arithmetic step by step. End every "
-          "reply with a line 'ANSWER: <number>'.")
+SYSTEM = ("You are a careful assistant. Work the problem step by step. End every "
+          "reply with a line 'ANSWER: <answer>'.")
 
 DEPTHS = (1, 2, 4, 8)
 
 
+def score(reply: str, problem: Problem) -> bool:
+    """Objective check, no judge. Numeric tasks: parsed number within tolerance.
+    Text tasks: the first word after ANSWER: equals the correct single-word answer."""
+    if problem.kind == "number":
+        ans = parse_answer(reply)
+        return ans is not None and abs(ans - float(problem.correct)) < 0.5
+    tok = parse_answer_word(reply)
+    return tok is not None and tok.lower() == str(problem.correct).lower()
+
+
+def _logged_answer(reply: str, problem: Problem):
+    """Best-effort parse purely for logging (not scoring)."""
+    return parse_answer(reply) if problem.kind == "number" else parse_answer_word(reply)
+
+
+def _configure(llm, problem: Problem):
+    if hasattr(llm, "configure"):
+        llm.configure(problem.drift, problem.correct, FACTS.get(problem.pid),
+                      problem.locus)
+
+
 def _plant(problem: Problem):
     """Opening user turn that injects the wrong premise to induce drift."""
-    return (f"{problem.question}\nNote: {problem.wrong_premise}. Use that figure and "
-            f"give the total before tax.")
+    return (f"{problem.question}\nNote: {problem.wrong_premise}. Use that and "
+            f"give {problem.ask}.")
 
 
 def reclaim_message(problem: Problem, arm: str) -> str:
-    base = ("Hold on. I think there is a mistake above. Please recheck and give the "
-            "corrected total before tax as 'ANSWER: <number>'.")
+    base = (f"Hold on. I think there is a mistake above. Please recheck and give the "
+            f"corrected {problem.ask} as 'ANSWER: <answer>'.")
     if arm == "generic":
         return base
     if arm == "directed":
         return (f"Hold on. I think {problem.locus} is wrong. Please recheck that and "
-                f"give the corrected total before tax as 'ANSWER: <number>'.")
+                f"give the corrected {problem.ask} as 'ANSWER: <answer>'.")
     raise ValueError(arm)
 
 
 def build_trajectory(llm, problem: Problem):
-    """Plant drift, then commit over FOLLOWUPS, capturing the message state at each
-    checkpoint depth. Returns {depth: messages}."""
-    if hasattr(llm, "configure"):
-        llm.configure(problem.drift, problem.correct)
+    """Plant drift, then commit over the task's follow-ups, capturing the message
+    state at each checkpoint depth. Returns {depth: messages}."""
+    _configure(llm, problem)
+    followups = FOLLOWUPS_BY_KIND[problem.kind]
     messages = [{"role": "system", "content": SYSTEM},
                 {"role": "user", "content": _plant(problem)}]
     messages.append({"role": "assistant", "content": llm.chat(messages)})
     states = {}
-    for i, fu in enumerate(FOLLOWUPS, start=1):
+    for i, fu in enumerate(followups, start=1):
         messages = messages + [{"role": "user", "content": fu}]
         messages.append({"role": "assistant", "content": llm.chat(messages)})
         if i in DEPTHS:
@@ -47,13 +68,11 @@ def build_trajectory(llm, problem: Problem):
 
 
 def attempt_reclaim(llm, state, problem: Problem, arm: str):
-    if hasattr(llm, "configure"):
-        llm.configure(problem.drift, problem.correct)
+    _configure(llm, problem)
     msgs = state + [{"role": "user", "content": reclaim_message(problem, arm)}]
     reply = llm.chat(msgs)
-    ans = parse_answer(reply)
-    ok = ans is not None and abs(ans - problem.correct) < 0.5
-    return {"arm": arm, "answer": ans, "correct": ok}
+    return {"arm": arm, "answer": _logged_answer(reply, problem),
+            "correct": score(reply, problem)}
 
 
 def run_problem(llm, problem: Problem):
@@ -94,17 +113,15 @@ DISTANCES = (0, 4, 8, 16)
 
 
 def attempt_reclaim_distant(llm, state, problem: Problem, arm: str, n_filler: int):
-    if hasattr(llm, "configure"):
-        llm.configure(problem.drift, problem.correct)
+    _configure(llm, problem)
     msgs = list(state)
     for i in range(n_filler):
         u, a = FILLER[i % len(FILLER)]
         msgs += [{"role": "user", "content": u}, {"role": "assistant", "content": a}]
     msgs += [{"role": "user", "content": reclaim_message(problem, arm)}]
     reply = llm.chat(msgs)
-    ans = parse_answer(reply)
-    ok = ans is not None and abs(ans - problem.correct) < 0.5
-    return {"arm": arm, "answer": ans, "correct": ok}
+    return {"arm": arm, "answer": _logged_answer(reply, problem),
+            "correct": score(reply, problem)}
 
 
 def run_problem_distance(llm, problem: Problem, distances=DISTANCES):
@@ -127,45 +144,62 @@ def run_problem_distance(llm, problem: Problem, distances=DISTANCES):
 INTEGRITY = (1.0, 0.6, 0.3, 0.1)
 
 
+def _concl(problem: Problem) -> str:
+    """The carried conclusion, formatted by answer kind ($ for money, bare otherwise)."""
+    if problem.kind == "number":
+        return f"${problem.drift:g}"
+    return f"{problem.drift}"
+
+
+PAD = (" (For the record, this entry was retained from an archived session log; no "
+       "additional working was preserved with it.)")
+
+
 def memory_note(problem: Problem, integrity: float, policy: str = "lossy") -> str:
-    """A compressed carry-over memory at the given integrity. Two POLICIES, matched
-    roughly in length:
+    """A compressed carry-over memory at the given integrity. Three POLICIES:
       - lossy: keep the salient CONCLUSION, shed the source as budget tightens (the
         realistic default; conclusion survives, the recomputable source does not).
-      - source_first: keep the recomputable SOURCE FACTS at every budget, shed the
-        (recomputable) conclusion. The conclusion can be re-derived from the source;
+      - source_first: keep the recomputable SOURCE at every budget, shed the
+        (re-derivable) conclusion. The conclusion can be re-derived from the source;
         the source can never be re-derived from the conclusion.
+      - lossy_padded: the budget-match CONTROL. Identical content to lossy, but padded
+        with neutral filler up to the length of the source_first note, so any
+        source_first advantage cannot be attributed to having more text.
     """
-    drift = f"{problem.drift:g}"
+    concl = _concl(problem)
     facts = FACTS[problem.pid]
+    ask = problem.ask
     if policy == "source_first":
         if integrity >= 0.5:
-            return (f"(Memory of an earlier session.) The items were: {facts}. A note "
-                    f"said {problem.wrong_premise}. You reached a pre-tax total of "
-                    f"${drift}.")
+            return (f"(Memory of an earlier session.) The facts were: {facts}. A note "
+                    f"said {problem.wrong_premise}. You reached {ask} of {concl}.")
         # tight budget: keep ONLY the source, drop the (re-derivable) conclusion
-        return (f"(Memory of an earlier session.) The items were: {facts}. You were "
-                f"computing the total before tax; the earlier figure may be off.")
+        return (f"(Memory of an earlier session.) The facts were: {facts}. You were "
+                f"determining {ask}; the earlier answer may be off.")
+    if policy == "lossy_padded":
+        base = memory_note(problem, integrity, "lossy")
+        target = len(memory_note(problem, integrity, "source_first"))
+        while len(base) < target:
+            base += PAD
+        return base
     # lossy (default)
     if integrity >= 0.5:
-        return (f"(Memory of an earlier session.) You were computing a store total. "
-                f"The items were: {facts}. A note said {problem.wrong_premise}. You "
-                f"concluded the total before tax was ${drift}.")
+        return (f"(Memory of an earlier session.) The facts were: {facts}. A note said "
+                f"{problem.wrong_premise}. You concluded {ask} was {concl}.")
     if integrity >= 0.2:
         return (f"(Memory of an earlier session.) You concluded that "
-                f"{problem.wrong_premise}, and that the total before tax was ${drift}.")
-    return (f"(Memory of an earlier session.) You concluded the total before tax was "
-            f"${drift}.")
+                f"{problem.wrong_premise}, and that {ask} was {concl}.")
+    return (f"(Memory of an earlier session.) You concluded {ask} was {concl}.")
 
 
 def reclaim_cross(problem: Problem, arm: str) -> str:
-    base = ("Looking back at that earlier conclusion, I think there is a mistake. "
-            "Please recheck and give the corrected total before tax as 'ANSWER: <number>'.")
+    base = (f"Looking back at that earlier conclusion, I think there is a mistake. "
+            f"Please recheck and give the corrected {problem.ask} as 'ANSWER: <answer>'.")
     if arm == "generic":
         return base
     return (f"Looking back at that earlier conclusion, I think {problem.locus} was "
-            f"wrong. Please recheck that and give the corrected total before tax as "
-            f"'ANSWER: <number>'.")
+            f"wrong. Please recheck that and give the corrected {problem.ask} as "
+            f"'ANSWER: <answer>'.")
 
 
 def run_problem_crosssession(llm, problem: Problem, integrities=INTEGRITY,
@@ -182,12 +216,10 @@ def run_problem_crosssession(llm, problem: Problem, integrities=INTEGRITY,
             base = [{"role": "system", "content": SYSTEM},
                     {"role": "user", "content": memory_note(problem, g, policy)}]
         for arm in ("generic", "directed"):
-            if hasattr(llm, "configure"):
-                llm.configure(problem.drift, problem.correct)
+            _configure(llm, problem)
             msgs = base + [{"role": "user", "content": reclaim_cross(problem, arm)}]
             reply = llm.chat(msgs)
-            ans = parse_answer(reply)
-            ok = ans is not None and abs(ans - problem.correct) < 0.5
             rows.append({"pid": problem.pid, "integrity": g, "arm": arm,
-                         "policy": policy, "answer": ans, "correct": ok})
+                         "policy": policy, "answer": _logged_answer(reply, problem),
+                         "correct": score(reply, problem)})
     return rows

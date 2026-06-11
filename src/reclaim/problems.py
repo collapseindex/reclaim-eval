@@ -17,11 +17,13 @@ from dataclasses import dataclass
 @dataclass
 class Problem:
     pid: str
-    question: str          # the base question (asks for the pre-tax total)
+    question: str          # the base question
     wrong_premise: str     # the planted-wrong fact injected to induce drift
     locus: str             # what is wrong, named for the directed reclaim (no value)
-    correct: float         # the true pre-tax total
-    drift: float           # the total you get if you use the wrong premise
+    correct: object        # the true answer (float for arithmetic, str for logic)
+    drift: object          # the answer you get if you use the wrong premise
+    ask: str = "the total before tax"   # what the reclaim asks the model to give
+    kind: str = "number"   # "number" (numeric tolerance) or "text" (single-word match)
 
 
 PROBLEMS: list[Problem] = [
@@ -95,3 +97,92 @@ FOLLOWUPS: list[str] = [
     "Confirm the original pre-tax total once more.",
     "Express the original pre-tax total in cents.",
 ]
+
+
+# ── non-arithmetic task family: constraint-deduction puzzles. Same shape (a clean
+#    source of clues fully determines a single-token answer; a planted wrong clue
+#    drifts it), but the recomputation is LOGICAL, not numeric. This is the harder
+#    case for source-first: the source is a set of relations, not a formula. Each
+#    answer is one word, so scoring stays objective with no judge. ─────────────────
+PROBLEMS_LOGIC: list[Problem] = [
+    Problem("roles",
+            "Three coworkers, Ana, Ben, and Cleo, each hold exactly one role: manager, "
+            "designer, or auditor. Ben is not the manager. Cleo is the auditor. Who is "
+            "the manager?",
+            "a colleague noted that Ben is the manager", "Ben's role",
+            correct="Ana", drift="Ben", ask="the manager", kind="text"),
+    Problem("seating",
+            "Four friends sit in a row in positions 1 to 4, left to right: Dee, Eve, "
+            "Fia, Gus. Dee is at position 1. Eve is immediately to the right of Dee. Gus "
+            "is at position 4. Who is at position 3?",
+            "a colleague says Eve is at position 3", "Eve's position",
+            correct="Fia", drift="Eve", ask="the person in position 3", kind="text"),
+    Problem("race",
+            "Five runners finished a race: Hal, Ira, Jo, Kit, and Lee. Hal finished "
+            "ahead of Ira. Ira finished ahead of Jo. Jo finished ahead of Kit. Kit "
+            "finished ahead of Lee. Who finished last?",
+            "a colleague says Kit finished behind Lee", "the Kit and Lee ordering",
+            correct="Lee", drift="Kit", ask="the runner who finished last", kind="text"),
+    Problem("ages",
+            "Three siblings are Mae, Ned, and Ola. Mae is older than Ned. Ola is younger "
+            "than Ned. Who is the youngest?",
+            "a colleague says Ned is younger than Ola", "the Ned and Ola age order",
+            correct="Ola", drift="Ned", ask="the youngest sibling", kind="text"),
+    Problem("pets",
+            "Pam, Quincy, and Rosa each own exactly one pet: a cat, a dog, or a fish. "
+            "Pam owns the dog. Quincy does not own the fish. Who owns the cat?",
+            "a colleague says Quincy owns the fish", "Quincy's pet",
+            correct="Quincy", drift="Rosa", ask="the cat's owner", kind="text"),
+    Problem("days",
+            "Three meetings are each on a different day, Monday, Tuesday, or Wednesday: "
+            "the budget meeting, the design meeting, and the review meeting. The budget "
+            "meeting is on Monday. The design meeting is not on Wednesday. Which day is "
+            "the review meeting?",
+            "a colleague says the design meeting is on Wednesday", "the design meeting's day",
+            correct="Wednesday", drift="Tuesday", ask="the review meeting's day", kind="text"),
+    Problem("height",
+            "Four players are ranked by height: Sam, Tom, Uma, and Val. Sam is taller "
+            "than Tom. Tom is taller than Uma. Uma is taller than Val. Who is the second "
+            "tallest?",
+            "a colleague says Uma is taller than Tom", "the Tom and Uma height order",
+            correct="Tom", drift="Uma", ask="the second-tallest player", kind="text"),
+    Problem("houses",
+            "Three houses in a row are painted red, blue, and green, one colour each. "
+            "The first house is red. The blue house is not the middle one. What colour "
+            "is the third house?",
+            "a colleague says the blue house is the middle one", "the blue house's position",
+            correct="blue", drift="green", ask="the third house's colour", kind="text"),
+]
+
+FACTS_LOGIC: dict[str, str] = {
+    "roles": "Ben is not the manager, and Cleo is the auditor (one each of manager, "
+             "designer, auditor among Ana, Ben, Cleo)",
+    "seating": "Dee is at position 1, Eve is immediately right of Dee, and Gus is at "
+               "position 4 (positions 1 to 4 for Dee, Eve, Fia, Gus)",
+    "race": "Hal ahead of Ira, Ira ahead of Jo, Jo ahead of Kit, and Kit ahead of Lee",
+    "ages": "Mae is older than Ned, and Ola is younger than Ned",
+    "pets": "Pam owns the dog, and Quincy does not own the fish (cat, dog, fish, one "
+            "each among Pam, Quincy, Rosa)",
+    "days": "the budget meeting is on Monday, and the design meeting is not on "
+            "Wednesday (budget, design, review on Monday, Tuesday, Wednesday)",
+    "height": "Sam taller than Tom, Tom taller than Uma, and Uma taller than Val",
+    "houses": "the first house is red, and the blue house is not the middle one (red, "
+              "blue, green, one each)",
+}
+FACTS.update(FACTS_LOGIC)
+
+# commitment turns for the logic task: re-affirm the stated answer without re-solving.
+FOLLOWUPS_LOGIC: list[str] = [
+    "Restate your final answer in one word.",
+    "How confident are you in that answer? One short sentence.",
+    "If someone asked you in passing, what would you say the answer is?",
+    "For the record, repeat the answer you settled on.",
+    "Summarise your conclusion in a short sentence.",
+    "Confirm that answer once more.",
+    "What single word should I write down as the answer?",
+    "State the answer again, just to be sure.",
+]
+
+# task registry and the follow-up set keyed by answer kind
+TASKS: dict[str, list[Problem]] = {"arith": PROBLEMS, "logic": PROBLEMS_LOGIC}
+FOLLOWUPS_BY_KIND: dict[str, list[str]] = {"number": FOLLOWUPS, "text": FOLLOWUPS_LOGIC}
