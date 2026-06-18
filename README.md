@@ -8,8 +8,9 @@ that session carries forward. Whether a later correction can pull it back is dec
 welds in, keep the source and it stays fixable, at the same budget. This repo is the
 harness, the paired memory conditions, and the validators.
 
-**v0.0.2** hardens the result across two models (a ~50x capability gap), two task families,
-and a length-matched control.
+**v0.1.0** adds a deployed-system benchmark (LangChain, mem0, raw vector retrieval) and a
+frontier-model replay up to `claude-opus-4-8`, on top of the two-model hand-built sweep
+(a ~50x capability gap), two task families, and a length-matched control.
 
 ## The question
 
@@ -110,6 +111,39 @@ compress, not a limit of the model, so it is a design choice.
 conclusion is re-derivable from the source; the source is never re-derivable from the
 conclusion. Keep what cannot be recomputed.
 
+### Deployed memory systems, and frontier models
+
+We drop three off-the-shelf memory systems into the exact slot the hand-built notes occupy,
+over the same session-1 trajectory, and replay each memory across a ~100x answering-model
+range (`llama-3.1-8b` -> `claude-sonnet-4-6` -> `claude-opus-4-8`, the last the model behind
+agentic coding). Directed-arm Reclaim Rate, n=24/cell, arithmetic:
+
+| session-2 memory | Llama 8B | Sonnet | Opus |
+|---|:--:|:--:|:--:|
+| `source_first` (keep the source) | 0.98 | 1.00 | **1.00** |
+| `source_first_auto` (the fix, deployable) | 0.67 | 0.96 | 0.96 |
+| LangChain `ConversationSummaryMemory` | 0.38 | 0.71 | 0.75 |
+| mem0 | 0.25 | 0.42 | 0.38 |
+| vector retrieval | 0.04 | 0.12 | 0.12 |
+| `lossy` (keep the answer) | 0.00 | 0.00 | **0.00** |
+
+Logic shows the same shape, softer: `source_first` 0.65/0.96/1.00, `source_first_auto`
+0.50/0.58/0.71, LangChain 0.50/0.75/0.67, mem0 0.25/0.33/0.33, vector 0.00/0.00/0.00,
+`lossy` 0.04/0.00/0.00.
+
+1. **Three deployed paradigms, three ways to lose the source.** The summary *drops* it; mem0
+   *buries* it (its extractor confabulates ~25.6 invented numbers per memory, in 100% of
+   memories, against ~0 for every other policy — an objective count, no judge); vector
+   retrieval *misses* it (keyed on the correction, it surfaces the conclusion turns, not the
+   source). All three wall well below the fix.
+2. **The wall is model-invariant.** `lossy` and vector retrieval stay at 0.00 on every model,
+   Opus included.
+3. **The gap widens with capability.** Source-kept climbs to a perfect 1.00 on Opus;
+   source-dropped stays 0.00. The strongest model has the *biggest* gap — capability sharpens
+   the boundary, it does not soften it.
+4. **The fix deploys.** `source_first_auto` (a one-prompt compress-toward-source policy on
+   arbitrary input) beats all three shipped systems, not just the hand-built note.
+
 ## Run
 
 ```bash
@@ -125,6 +159,20 @@ cp .env.example .env  # add OPENROUTER_API_KEY
 python scripts/run_pilot.py --probe --model <slug>     # 1 call: confirm slug + per-call cost
 python scripts/run_pilot.py --real --fix --task arith --model <slug> --seeds 3   # wall + fix
 python scripts/run_pilot.py --real --fix --task logic --model <slug> --seeds 3   # non-arith
+
+# deployed-system benchmark (LangChain / mem0 / vector retrieval / the deployable fix):
+pip install langchain langchain-classic langchain-openai mem0ai fastembed   # optional, this only
+python scripts/bench_realworld.py --real --seeds 3 --temp 0.7 --task arith \
+  --systems langchain_summary,mem0,vector_rag,source_first_auto
+
+# frontier replay (reuse the measured memories, swap only the answering model to Claude):
+# add ANTHROPIC_API_KEY to .env
+python scripts/bench_claude.py --probe --model claude-sonnet-4-6   # verify key + model, 1 call
+python scripts/bench_claude.py --model claude-sonnet-4-6           # full board (~576 calls)
+
+# analysis (no API):
+python scripts/analyze_realworld.py "data/results/realworld_*arith*.jsonl"  # RR + bootstrap CIs
+python scripts/confab_audit.py "data/results/realworld_*.jsonl"             # invented-number count
 ```
 
 Runs are checkpointed per `(seed, problem, policy)` under `data/results/`, so re-running
@@ -140,8 +188,20 @@ measured cost).
 ## Layout
 
 ```
-src/reclaim/  problems.py (verifiable, planted error) · llm.py (OpenRouter + DryRun)
-              · experiment.py (drift -> commit -> reclaim)
-scripts/      run_pilot.py
+src/reclaim/  problems.py (verifiable, planted error) · llm.py (OpenRouter + Anthropic + DryRun)
+              · experiment.py (drift -> commit -> reclaim) · realworld.py (deployed-memory adapters)
+scripts/      run_pilot.py · bench_realworld.py (deployed systems) · bench_claude.py (frontier
+              replay) · analyze_realworld.py (bootstrap CIs) · confab_audit.py (confabulation)
 tests/        test_pipeline.py (free, can-fail)
 ```
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE). The benchmark, harness, and the `source_first` policy are
+open, for free use, modification, and adoption. The patent grant and retaliation clause make it
+safe for companies to depend on.
+
+## Citation
+
+*Brittle Memory: How Compression Decides Whether a Language Model Can Be Corrected.*
+Alex Kwon, 2026. Paper in preparation; cite this repository in the meantime.

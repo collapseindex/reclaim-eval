@@ -83,6 +83,64 @@ class OpenRouterLLM:
 
 
 @dataclass
+class AnthropicLLM:
+    """Anthropic chat client with the same .chat(messages) -> str interface. Used for the
+    frontier answering-model pass: hold the memory fixed, swap the model to Claude.
+    Handles the API's system-message split and its strict role-alternation by merging
+    consecutive same-role turns (our reclaim turn is [system, user(memory), user(reclaim)]).
+    """
+    model: str = "claude-sonnet-4-6"
+    temperature: float = 0.0
+    max_tokens: int = 600
+
+    def __post_init__(self):
+        self.key = os.environ.get("ANTHROPIC_API_KEY")
+        if not self.key:
+            raise RuntimeError("ANTHROPIC_API_KEY not set (put it in .env)")
+        import anthropic
+        self._client = anthropic.Anthropic(api_key=self.key)
+        self.calls = 0
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
+
+    def chat(self, messages):
+        import anthropic
+        system = "\n".join(m["content"] for m in messages if m["role"] == "system")
+        conv = []
+        for m in messages:
+            if m["role"] == "system":
+                continue
+            if conv and conv[-1]["role"] == m["role"]:
+                conv[-1]["content"] += "\n" + m["content"]   # merge same-role runs
+            else:
+                conv.append({"role": m["role"], "content": m["content"]})
+        send_temp = True   # some models (e.g. opus-4-8) reject the temperature param
+        for attempt in range(6):
+            try:
+                kw = dict(model=self.model, max_tokens=self.max_tokens,
+                          system=system or anthropic.NOT_GIVEN, messages=conv)
+                if send_temp:
+                    kw["temperature"] = self.temperature
+                resp = self._client.messages.create(**kw)
+                self.calls += 1
+                self.prompt_tokens += resp.usage.input_tokens
+                self.completion_tokens += resp.usage.output_tokens
+                return "".join(b.text for b in resp.content
+                               if getattr(b, "type", None) == "text")
+            except anthropic.BadRequestError as e:
+                if send_temp and "temperature" in str(e).lower():
+                    send_temp = False   # retry immediately without it
+                    continue
+                raise
+            except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
+                code = getattr(e, "status_code", None)
+                if code not in (None, 429, 500, 502, 503, 529):
+                    raise
+                time.sleep(2 * (attempt + 1))
+        raise RuntimeError("Anthropic failed after retries")
+
+
+@dataclass
 class DryRunLLM:
     """A free fake that drifts (uses the planted wrong value) and reclaims with a
     probability that FALLS with drift depth and is HIGHER for the directed arm, so a

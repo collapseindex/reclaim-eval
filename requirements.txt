@@ -1,3 +1,14 @@
 requests
 numpy
 python-dotenv
+
+# Optional: the real-world memory benchmark (scripts/bench_realworld.py). Only needed to
+# reproduce the deployed-system comparison; the core reclaim harness needs none of these.
+#   langchain + langchain-classic + langchain-openai  -> ConversationSummaryMemory
+#   mem0ai + fastembed                                -> mem0 (local FastEmbed embedder)
+langchain>=1.0 ; extra == "bench"
+langchain-classic ; extra == "bench"
+langchain-openai ; extra == "bench"
+langchain-community ; extra == "bench"
+mem0ai>=2.0 ; extra == "bench"
+fastembed ; extra == "bench"
