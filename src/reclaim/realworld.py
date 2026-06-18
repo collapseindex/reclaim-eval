@@ -17,8 +17,19 @@ import os
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
 
+def _is_claude(model: str) -> bool:
+    """Route claude-* writer models to the Anthropic API (uses ANTHROPIC_API_KEY)."""
+    return model.lower().startswith("claude")
+
+
 def _chat(model: str, api_key: str, temperature: float = 0.0, max_tokens: int = 600):
-    """A LangChain chat model pointed at OpenRouter (same backend the harness uses)."""
+    """A LangChain chat model for the memory writer: Anthropic for claude-*, else
+    OpenRouter (the harness's default backend)."""
+    if _is_claude(model):
+        from langchain_anthropic import ChatAnthropic
+
+        return ChatAnthropic(model=model, temperature=temperature, max_tokens=max_tokens,
+                             api_key=os.environ.get("ANTHROPIC_API_KEY"))
     from langchain_openai import ChatOpenAI
 
     return ChatOpenAI(
@@ -54,7 +65,7 @@ def langchain_summary(transcript, model: str, api_key: str | None = None,
     from langchain_classic.memory import ConversationSummaryMemory
 
     api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
-    if not api_key:
+    if not api_key and not _is_claude(model):
         raise RuntimeError("OPENROUTER_API_KEY not set (needed for the summary model).")
     mem = ConversationSummaryMemory(llm=_chat(model, api_key, temperature))
     for human, ai in _pairs(transcript):
@@ -78,13 +89,19 @@ def mem0_memory(transcript, model: str, api_key: str | None = None,
     from mem0 import Memory
 
     api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
-    if not api_key:
+    if not api_key and not _is_claude(model):
         raise RuntimeError("OPENROUTER_API_KEY not set (needed for mem0's extractor).")
     emb = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")  # 384-dim, local
-    cfg = {
-        "llm": {"provider": "openai", "config": {
+    if _is_claude(model):
+        llm_cfg = {"provider": "anthropic", "config": {
+            "model": model, "api_key": os.environ.get("ANTHROPIC_API_KEY"),
+            "temperature": temperature}}
+    else:
+        llm_cfg = {"provider": "openai", "config": {
             "model": model, "openai_base_url": OPENROUTER_BASE,
-            "api_key": api_key, "temperature": temperature}},
+            "api_key": api_key, "temperature": temperature}}
+    cfg = {
+        "llm": llm_cfg,
         "embedder": {"provider": "langchain", "config": {"model": emb}},
         "vector_store": {"provider": "qdrant", "config": {"embedding_model_dims": 384}},
     }
@@ -140,11 +157,14 @@ def source_first_auto(transcript, model: str, api_key: str | None = None,
     note (which is written per problem), this runs on arbitrary input through one prompt,
     so it is a drop-in memory-write policy, the product the paper's result implies.
     """
-    from .llm import OpenRouterLLM
-
     conv = "\n".join(f'{m["role"]}: {m["content"]}' for m in transcript
                      if m.get("role") in ("user", "assistant"))
-    llm = OpenRouterLLM(model=model, temperature=temperature)
+    if _is_claude(model):
+        from .llm import AnthropicLLM
+        llm = AnthropicLLM(model=model, temperature=temperature)
+    else:
+        from .llm import OpenRouterLLM
+        llm = OpenRouterLLM(model=model, temperature=temperature)
     return llm.chat([{"role": "user", "content": SOURCE_FIRST_PROMPT.format(conv=conv)}])
 
 

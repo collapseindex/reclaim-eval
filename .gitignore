@@ -5,3 +5,6 @@ data/
 .pytest_cache/
 paper/
 paper_acl/
+
+# private working notes (local only)
+DEPLOYMENT.md

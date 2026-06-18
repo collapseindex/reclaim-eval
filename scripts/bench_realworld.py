@@ -121,7 +121,12 @@ def main() -> int:
     ap.add_argument("--label", default="",
                     help="checkpoint tag suffix, so a different system set is its own file "
                          "(e.g. --label leaderboard)")
+    ap.add_argument("--writer-model", default="",
+                    help="model that CONSTRUCTS the deployed memory (default: same as "
+                         "--model); set to a claude-* model to test the writer confound, "
+                         "holding the session-1 trajectory and the answering model fixed")
     args = ap.parse_args()
+    writer_model = args.writer_model or args.model
 
     if not (args.real or args.smoke):
         ap.error("pass --smoke (cheap 1-problem run) or --real (full run)")
@@ -166,7 +171,7 @@ def main() -> int:
             # build each needed variant's carry-over once, reuse across its arms
             carry = {}
             for v in {v for v, _ in need}:
-                carry[v] = _carryover(v, prob, transcript, args.model)
+                carry[v] = _carryover(v, prob, transcript, writer_model)
             rows = []
             for v, a in need:
                 res = _reclaim(llm, prob, carry[v], a)
