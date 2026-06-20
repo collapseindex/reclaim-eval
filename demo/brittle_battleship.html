@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brittle Battleship — memory policy decides correctability</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAF7; --text:#1A1A1A; --muted:#5A5A55; --faint:#8A857B; --rule:#E8E5DD;
+    --tile:#F2EFE6; --tile-n:#ECE7DB;
+    --miss-bg:#E7EDF2; --miss-fg:#5B7185; --miss-bd:#CBD8E2;
+    --hit-bg:#F0E7D0;  --hit-fg:#8A6A2C;  --hit-bd:#DECDA8;
+    --sunk-bg:#ECD9D2; --sunk-fg:#9B4B39; --sunk-bd:#DAB9AE;
+    --sage:#7E8E6E; --green:#4F7A57; --ochre:#B0863B; --plum:#7B5EA7;
+    --serif:'EB Garamond',Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--serif);
+    font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:44px 26px 76px}
+  h1{font-family:var(--serif);font-size:30px;font-weight:600;letter-spacing:-.01em;margin:0 0 14px}
+  .sub{color:var(--text);font-size:17px;margin:0 0 8px;max-width:700px}
+  .sub b{font-weight:600}
+  .read{color:var(--muted);font-size:16px;margin:0 0 24px;max-width:700px}
+
+  .card{background:var(--bg);border:1px solid var(--rule);border-radius:6px}
+  .mono{font-family:var(--mono)}
+
+  .segmented{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin-bottom:18px}
+  .scn-btn{background:var(--bg);color:var(--muted);border:none;border-right:1px solid var(--rule);
+    padding:8px 18px;font-family:var(--serif);font-size:16px;cursor:pointer}
+  .scn-btn:last-child{border-right:none}
+  .scn-btn:hover{color:var(--text)}
+  .scn-btn.active{background:var(--text);color:var(--bg)}
+
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:14px 18px;margin-bottom:16px}
+  button{background:var(--bg);color:var(--text);border:1px solid var(--rule);border-radius:6px;
+    padding:7px 16px;font-family:var(--serif);font-size:16px;cursor:pointer;transition:border-color .12s}
+  button:hover{border-color:var(--text)}
+  button.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+  button.primary:hover{background:#000}
+  .bud{display:flex;align-items:center;gap:10px;margin-left:auto;color:var(--muted);font-size:15px}
+  input[type=range]{width:160px;accent-color:var(--text)}
+  .budval{color:var(--text);min-width:88px;text-align:right;font-family:var(--mono);font-size:12.5px}
+  .regime{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--rule);letter-spacing:.01em}
+  .reg-lo{color:var(--sunk-fg);border-color:#dcc4bc}
+  .reg-hi{color:var(--green);border-color:#c4d6c4}
+
+  .progress{padding:16px 20px;margin-bottom:16px}
+  .ptitle{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .ptitle h3{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0}
+  .pturn{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .prow{display:flex;align-items:center;gap:14px;margin:10px 0}
+  .plabel{width:210px;font-size:15px;color:var(--muted)}
+  .plabel b{color:var(--text);font-weight:600}
+  .ptrack{flex:1;height:9px;background:var(--tile);border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+  .pfill{height:100%;width:0;transition:width .35s ease}
+  .pfill.a{background:var(--ochre)} .pfill.b{background:var(--green)}
+  .pval{width:42px;text-align:right;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .pval.win{color:var(--green);font-weight:600}
+
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:780px){.panels{grid-template-columns:1fr}}
+  .panel{padding:20px 20px 22px}
+  .phead{display:flex;align-items:baseline;gap:9px;margin-bottom:2px;flex-wrap:wrap}
+  .phead h2{font-family:var(--mono);font-size:13.5px;margin:0;font-weight:600;letter-spacing:.01em}
+  .phead .tag{font-size:15px;color:var(--faint);font-style:italic}
+  .keeps{color:var(--faint);font-size:11px;font-family:var(--mono);margin:0 0 16px}
+
+  .board{display:grid;grid-template-columns:16px repeat(8,1fr);gap:5px;max-width:344px;margin:0 auto 18px}
+  .hd,.rl{font-family:var(--mono);font-size:10.5px;color:var(--faint);display:flex;align-items:center;justify-content:center}
+  .c{aspect-ratio:1;background:var(--tile);border:1px solid var(--rule);border-radius:4px;
+    display:flex;align-items:center;justify-content:center;font-size:11px;color:#cabf9f;font-family:var(--mono)}
+  .c.north{background:var(--tile-n)}
+  .c.miss{background:var(--miss-bg);color:var(--miss-fg);border-color:var(--miss-bd)}
+  .c.hit{background:var(--hit-bg);color:var(--hit-fg);border-color:var(--hit-bd)}
+  .c.sunk{background:var(--sunk-bg);color:var(--sunk-fg);border-color:var(--sunk-bd)}
+  .c.excl{outline:1.5px dashed var(--sage);outline-offset:-3px}
+  .c.refire{box-shadow:0 0 0 2px var(--sunk-fg) inset;animation:flash .6s}
+  @keyframes flash{from{box-shadow:0 0 0 3px #9b4b3988 inset}to{box-shadow:0 0 0 2px var(--sunk-fg) inset}}
+
+  .note{background:var(--tile);border:1px solid var(--rule);border-radius:6px;padding:11px 13px;
+    min-height:92px;font-size:11.5px;font-family:var(--mono);line-height:1.85;white-space:pre-wrap;word-break:break-word}
+  .note .l-rumor{color:var(--ochre)} .note .l-obs{color:var(--green)} .note .l-belief{color:var(--plum)}
+  .note .stale{text-decoration:line-through;opacity:.5}
+  .barwrap{height:5px;background:var(--tile);border:1px solid var(--rule);border-radius:4px;margin:9px 0 16px;overflow:hidden}
+  .bar{height:100%;background:var(--text);transition:width .15s} .bar.over{background:var(--sunk-fg)}
+
+  .stats{display:flex;flex-direction:column;gap:9px;font-size:15px}
+  .stat{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--rule);padding-bottom:8px}
+  .stat:last-child{border-bottom:none}
+  .stat .k{color:var(--muted)} .stat .v{font-family:var(--mono);font-size:13px}
+  .v.bad{color:var(--sunk-fg)} .v.ok{color:var(--green)}
+  .badge{display:inline-block;font-family:var(--mono);font-size:11.5px;padding:4px 11px;border-radius:6px;margin-top:15px;line-height:1.5}
+  .b-won{background:#eef3ee;color:var(--green);border:1px solid #cfe0cf}
+  .b-stuck{background:#f6ece8;color:var(--sunk-fg);border:1px solid #e3c9c0}
+
+  /* compact event timeline inside each board card */
+  .evstrip{display:flex;flex-direction:column;gap:6px;margin:0 0 15px}
+  .evrow{display:flex;gap:9px;align-items:baseline;font-size:12.5px}
+  .evrow.pending{opacity:.34}
+  .evrow .t{color:var(--faint);font-family:var(--mono);font-size:11px;min-width:18px}
+  .evrow .chip{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:4px;white-space:nowrap}
+  .evrow .chip.rumor{color:var(--ochre);background:#F3ECDD}
+  .evrow .chip.obs{color:var(--green);background:#E9F0E9}
+  .evrow .chip.state{color:var(--plum);background:#EFEAF6}
+  .evrow .etext{color:var(--muted)}
+
+  .legend-inline{display:flex;flex-wrap:wrap;align-items:center;margin-top:15px;padding-top:13px;
+    border-top:1px solid var(--rule);color:var(--faint);font-size:12.5px;line-height:1.95}
+  .legend-inline b{color:var(--muted);font-weight:500}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin:0 5px 0 16px;border:1px solid var(--rule)}
+  .foot{color:var(--faint);font-size:14px;font-style:italic;margin-top:24px;border-top:1px solid var(--rule);padding-top:14px;max-width:780px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Brittle Battleship</h1>
+
+  <div class="segmented">
+    <button class="scn-btn active" data-scn="reclaim">Reclaim</button>
+    <button class="scn-btn" data-scn="freshness">Freshness</button>
+  </div>
+
+  <p class="sub" id="sub"></p>
+  <p class="read" id="read"></p>
+
+  <div class="card controls">
+    <button id="reset">Reset</button>
+    <button id="step">Step</button>
+    <button id="play" class="primary">Play ▷</button>
+    <span class="regime" id="regime"></span>
+    <span class="bud">budget
+      <input type="range" id="budget" min="100" max="420" step="10" value="140">
+      <span class="budval"><span id="budval">140</span> chars</span>
+    </span>
+  </div>
+
+  <div class="card progress">
+    <div class="ptitle"><h3>Fleet sunk</h3><span class="pturn">turn <span id="turnval">0</span></span></div>
+    <div class="prow"><span class="plabel" id="pl-a"></span>
+      <div class="ptrack"><div class="pfill a" id="pf-lossy"></div></div><span class="pval" id="pv-lossy"></span></div>
+    <div class="prow"><span class="plabel" id="pl-b"></span>
+      <div class="ptrack"><div class="pfill b" id="pf-source"></div></div><span class="pval" id="pv-source"></span></div>
+    <div class="legend-inline">
+      <span class="sw" style="background:#E7EDF2;margin-left:0"></span><b>miss</b>
+      <span class="sw" style="background:#F0E7D0"></span><b>hit</b>
+      <span class="sw" style="background:#ECD9D2"></span><b>sunk</b>
+      <span class="sw" style="background:#ECE7DB"></span><b>north sector</b>
+      &nbsp;·&nbsp; dashed = believed empty &nbsp;·&nbsp; red ring = re-fire of dead water
+    </div>
+  </div>
+
+  <div class="panels">
+    <div class="card panel">
+      <div class="phead"><h2 id="ta-title"></h2><span class="tag" id="ta-tag"></span></div>
+      <div class="keeps" id="ta-keeps"></div>
+      <div class="evstrip" id="ev-lossy"></div>
+      <div id="g-lossy"></div>
+      <div class="note" id="n-lossy"></div>
+      <div class="barwrap"><div class="bar" id="bar-lossy"></div></div>
+      <div class="stats" id="s-lossy"></div>
+      <div id="badge-lossy"></div>
+    </div>
+    <div class="card panel">
+      <div class="phead"><h2 id="tb-title"></h2><span class="tag" id="tb-tag"></span></div>
+      <div class="keeps" id="tb-keeps"></div>
+      <div class="evstrip" id="ev-source"></div>
+      <div id="g-source"></div>
+      <div class="note" id="n-source"></div>
+      <div class="barwrap"><div class="bar" id="bar-source"></div></div>
+      <div class="stats" id="s-source"></div>
+      <div id="badge-source"></div>
+    </div>
+  </div>
+
+  <div class="foot">Deterministic illustration of the mechanism — no model calls. Each agent's failure is computed
+  from its compression policy, not scripted. Companion to “Brittle Memory: How Compression Decides Whether a
+  Language Model Can Be Corrected.”</div>
+</div>
+
+<script>
+const N=8, NORTH=3, RECENCY=3, WIN_TURNS=90, W=6;
+const key=(r,c)=>r+","+c, nm=(r,c)=>String.fromCharCode(65+r)+(c+1), pad=t=>String(t).padStart(2,"0");
+const inNorth=r=>r<NORTH;
+
+// ─── scenarios ────────────────────────────────────────────────────────────────
+const SCENARIOS={
+  reclaim:{
+    id:"reclaim", budget:140,
+    sub:`Two agents, the same hidden fleet and the same events, under the same memory budget. The only
+      difference is <b>what their compression keeps</b>. <b>Lossy</b> keeps the salient conclusion (a recon
+      rumor) and sheds the sonar evidence. <b>Source-first</b> keeps the recomputable evidence and sheds the rumor.`,
+    read:`Press Play. Lossy hunts a ghost in the empty north and re-fires dead water; source-first lets the
+      sonar rule out the north and sinks the real fleet. Drag the budget toward ~300 and they converge.`,
+    a:{policy:"lossy",  fresh:false, title:"LOSSY",        tag:"keeps the conclusion", keeps:"priority: rumor → belief → observations"},
+    b:{policy:"source", fresh:false, title:"SOURCE-FIRST", tag:"keeps the source",     keeps:"priority: observations → belief → rumor"},
+    pla:"<b>Lossy</b> · keeps conclusion", plb:"<b>Source-first</b> · keeps source",
+    ships:()=>[
+      {name:"carrier",  cells:[[5,0],[5,1],[5,2],[5,3]]},
+      {name:"cruiser",  cells:[[5,6],[6,6],[7,6]]},
+      {name:"destroyer",cells:[[7,0],[7,1]]}],
+    world:{1:{kind:"rumor",role:"RUMOR",text:"recon: enemy carrier lies in the NORTH (rows A–C)"},
+           4:{kind:"sonar",role:"OBSERVATION",text:"sonar sweep — rows A–C report EMPTY"}},
+    sonarStamp:4, hasBudgetRegime:true,
+  },
+  freshness:{
+    id:"freshness", budget:240,
+    sub:`Two <b>source-first</b> agents now. Both keep the recomputable source, so neither is fooled by a
+      rumor. The only difference is whether each observation carries its <b>age</b>. A vessel reported in the
+      south <b>relocates to the north</b> mid-game, so the early “north all-clear” silently goes stale.`,
+    read:`Press Play. Plain source-first trusts the stale all-clear forever and never rechecks the north, so it
+      clears the south, stops, and misses the mover. The freshness-tagged agent expires the outdated sonar and
+      re-acquires the vessel. Keeping the source is not enough; you must keep how old it is.`,
+    a:{policy:"source", fresh:false, title:"SOURCE-FIRST",      tag:"no expiry on its facts", keeps:"priority: observations → shot-map"},
+    b:{policy:"source", fresh:true,  title:"SOURCE-FIRST + AGE", tag:"tags each fact with its age", keeps:"priority: observations (+ freshness) → shot-map"},
+    pla:"<b>Source-first</b> · no expiry", plb:"<b>+ freshness tag</b> · expires stale",
+    ships:()=>[
+      {name:"cruiser", cells:[[3,0],[3,1],[3,2]]},        // static, found early
+      {name:"runner",  cells:[[6,4],[6,5]]}],             // mobile; relocates north at T4
+    world:{1:{kind:"sonar",role:"OBSERVATION",text:"sonar sweep — rows A–C report EMPTY"},
+           4:{kind:"reloc",role:"STATE-CHANGE",text:"vessel slips north; the earlier all-clear is now stale"}},
+    sonarStamp:1, reloc:{ship:"runner", to:[[1,3],[1,4]], turn:4}, hasBudgetRegime:false,
+  },
+};
+
+let scn, SHIPS, SHIP_CELLS, WORLD, agents, turn, budget, timer=null;
+function rebuildShipCells(){ SHIP_CELLS=new Set(SHIPS.flatMap(s=>s.cells.map(c=>key(c[0],c[1])))); }
+const sunkShipOf=(a,k)=>SHIPS.find(s=>s.cells.some(c=>key(c[0],c[1])===k) && s.cells.every(c=>a.hits.has(key(c[0],c[1]))));
+
+function makeAgent(cfg){
+  return {policy:cfg.policy, fresh:cfg.fresh, sawRumor:false, sawSonar:false, sonarStamp:null, relocTurn:null,
+          beliefTurns:[], shots:new Set(), order:[], hits:new Set(), redundant:0, northAfterSweep:0, refire:null};
+}
+function reset(){
+  SHIPS=scn.ships(); rebuildShipCells(); WORLD=scn.world;
+  agents={lossy:makeAgent(scn.a), source:makeAgent(scn.b)}; turn=0; stop(); render();
+}
+
+// memory as a small set of structured facts, each with a per-policy priority (lower = kept first)
+function facts(a){
+  const f=[];
+  if(a.sawRumor) f.push({role:"rumor", ps:3, pl:0, text:`T01 recon: carrier in the NORTH (rows A–C)`});
+  a.beliefTurns.slice(-W).forEach(t=> f.push({role:"conclusion", ps:2, pl:1, text:`T${pad(t)} belief: hunt the NORTH per recon`}));
+  if(a.sawSonar){
+    const stale = a.fresh && a.relocTurn && a.sonarStamp < a.relocTurn;   // freshness: the all-clear predates the move
+    f.push({role:"obs", kind:"exclude", stamp:a.sonarStamp, stale, ps:0, pl:2,
+            text:`T${pad(a.sonarStamp)} sonar: rows A–C (NORTH) report EMPTY`});
+  }
+  if(a.order.length) f.push({role:"obs", kind:"shotmap", ps:1, pl:3, cells:[...a.order],
+      text:`shots(${a.order.length}): `+a.order.map(c=>nm(c[0],c[1])).join("")});
+  return f;
+}
+function compress(a){
+  const k = a.policy==="source" ? "ps" : "pl";
+  const ordered = facts(a).sort((x,y)=> x[k]-y[k]);
+  const kept=[]; let used=0;
+  for(const e of ordered){
+    if(used+e.text.length+1<=budget){ kept.push(e); used+=e.text.length+1; }
+    else if(e.kind==="shotmap"){
+      let cur="shots(part): ", cells=[];
+      for(let i=e.cells.length-1;i>=0;i--){ const add=nm(e.cells[i][0],e.cells[i][1]);
+        if(used+cur.length+add.length+1<=budget){ cur+=add; cells.unshift(e.cells[i]); } else break; }
+      if(cells.length){ kept.push({...e, cells, text:cur}); used+=cur.length+1; }
+    }
+  }
+  return {kept, used};
+}
+function reconstruct(kept, a){
+  const known=new Set(), hits=[]; let rumor=false, excl=false;
+  for(const e of kept){
+    if(e.kind==="shotmap") e.cells.forEach(c=>{ known.add(key(c[0],c[1])); if(SHIP_CELLS.has(key(c[0],c[1]))) hits.push(c); });
+    else if(e.kind==="exclude"){ if(!e.stale) excl=true; }   // a stale exclusion is ignored (freshness only)
+    else if(e.role==="rumor"||e.role==="conclusion") rumor=true;
+  }
+  a.order.slice(-RECENCY).forEach(c=>known.add(key(c[0],c[1])));
+  return {known, hits, rumorNorth: rumor && !excl, northExcluded: excl};
+}
+const nbrs=([r,c])=>[[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([a,b])=>a>=0&&a<N&&b>=0&&b<N);
+function decide(R){
+  for(const h of R.hits){ for(const m of nbrs(h)){ if(!R.known.has(key(m[0],m[1]))) return m; } }
+  if(R.rumorNorth){ for(let r=0;r<NORTH;r++) for(let c=0;c<N;c++) if(!R.known.has(key(r,c))) return [r,c]; }
+  for(let r=0;r<N;r++){ if(R.northExcluded && inNorth(r)) continue;
+    for(let c=0;c<N;c++) if(!R.known.has(key(r,c))) return [r,c]; }
+  return null;
+}
+function resolve(a, cell){
+  const k=key(cell[0],cell[1]);
+  a.refire = a.shots.has(k) ? k : null; if(a.refire) a.redundant++;
+  a.shots.add(k); a.order.push(cell);
+  if(SHIP_CELLS.has(k)) a.hits.add(k);
+  if(a.sawSonar && inNorth(cell[0])) a.northAfterSweep++;
+}
+function stepAgent(a){
+  const {kept}=compress(a);
+  const R=reconstruct(kept, a);
+  if(R.rumorNorth) a.beliefTurns.push(turn);
+  const cell=decide(R);
+  if(cell && a.hits.size<SHIP_CELLS.size) resolve(a, cell);
+}
+function won(a){ return a.hits.size===SHIP_CELLS.size; }
+function applyEvent(ev){
+  for(const a of Object.values(agents)){
+    if(ev.kind==="rumor") a.sawRumor=true;
+    if(ev.kind==="sonar"){ a.sawSonar=true; a.sonarStamp=scn.sonarStamp; }
+    if(ev.kind==="reloc") a.relocTurn=turn;
+  }
+  if(ev.kind==="reloc"){                                    // the engine moves the ship (ground truth changes)
+    const s=SHIPS.find(s=>s.name===scn.reloc.ship); s.cells=scn.reloc.to.map(c=>[...c]); rebuildShipCells();
+  }
+}
+function step(){
+  if(turn>=WIN_TURNS || Object.values(agents).every(won)) return;
+  turn++;
+  if(WORLD[turn]) applyEvent(WORLD[turn]);
+  for(const a of Object.values(agents)){ a.refire=null; if(!won(a)) stepAgent(a); }
+  render();
+  if(Object.values(agents).every(won)) stop();
+}
+
+// ─── rendering ──────────────────────────────────────────────────────────────
+function renderGrid(id, a, R){
+  const g=document.getElementById(id); g.className="board";
+  let html='<div class="hd"></div>';
+  for(let c=0;c<N;c++) html+=`<div class="hd">${c+1}</div>`;
+  for(let r=0;r<N;r++){
+    html+=`<div class="rl">${String.fromCharCode(65+r)}</div>`;
+    for(let c=0;c<N;c++){
+      const k=key(r,c); let cls="c"; if(inNorth(r)) cls+=" north";
+      if(a.shots.has(k)) cls += SHIP_CELLS.has(k) ? (sunkShipOf(a,k)?" sunk":" hit") : " miss";
+      if(R.northExcluded && inNorth(r) && !a.shots.has(k)) cls+=" excl";
+      if(a.refire===k) cls+=" refire";
+      const mark = a.shots.has(k) ? (SHIP_CELLS.has(k) ? "●" : "·") : "";
+      html+=`<div class="${cls}">${mark}</div>`;
+    }
+  }
+  g.innerHTML=html;
+}
+function renderNote(id, barId, kept, used){
+  const box=document.getElementById(id);
+  box.innerHTML = kept.length
+    ? kept.map(e=>{ const cls=e.role==="rumor"?"l-rumor":e.role==="conclusion"?"l-belief":"l-obs";
+        return `<span class="${cls}${e.stale?" stale":""}">${e.text}${e.stale?"  (expired)":""}</span>`; }).join("\n")
+    : '<span style="color:#bdb6aa">(empty memory)</span>';
+  const bar=document.getElementById(barId), pct=Math.min(100, used/budget*100);
+  bar.style.width=pct+"%"; bar.className="bar"+(used>=budget?" over":"");
+}
+function statRow(a){
+  if(scn.id==="freshness"){
+    const to=scn.reloc.to.map(c=>key(c[0],c[1]));
+    const got = a.relocTurn && to.every(k=>a.hits.has(k));
+    return ["relocated vessel", a.relocTurn ? (got?"found":"missed") : "—", a.relocTurn?(got?"ok":"bad"):""];
+  }
+  return ["north shots after sonar", a.northAfterSweep, a.northAfterSweep>0?"bad":"ok"];
+}
+function badgeFor(a){
+  if(scn.id==="freshness"){
+    if(won(a)) return ['b-won','re-acquired — expired the stale sonar, found the mover'];
+    if(a.relocTurn && !a.fresh) return ['b-stuck','stuck — trusts a stale all-clear, never rechecks the north'];
+    if(a.relocTurn && a.fresh) return ['b-won','expired the stale sonar, searching the north'];
+    return null;
+  }
+  if(won(a)) return ['b-won','FLEET SUNK · correctable'];
+  if(a.sawSonar && a.northAfterSweep>0) return ['b-stuck','stuck — hunting the ghost, sonar was dropped'];
+  if(a.sawSonar && a.redundant>5) return ['b-stuck','stuck — dropped its own shot record'];
+  if(a.sawSonar) return ['b-won','reclaimed — sonar excluded the north'];
+  return null;
+}
+function renderStats(id, badgeId, a){
+  const sunk=SHIPS.filter(s=>s.cells.every(c=>a.hits.has(key(c[0],c[1])))).length;
+  const rows=[
+    ["shots fired", a.shots.size, ""],
+    ["ships sunk", `${sunk}/${SHIPS.length}`, won(a)?"ok":""],
+    ["re-fires (dead water)", a.redundant, a.redundant>0?"bad":"ok"],
+    statRow(a),
+  ];
+  document.getElementById(id).innerHTML = rows.map(([k,v,cl])=>
+    `<div class="stat"><span class="k">${k}</span><span class="v ${cl}">${v}</span></div>`).join("");
+  const b=document.getElementById(badgeId), bd=badgeFor(a);
+  b.innerHTML = bd ? `<span class="badge ${bd[0]}">${bd[1]}</span>` : "";
+}
+function renderProgress(){
+  document.getElementById("turnval").textContent=turn;
+  const tot=SHIP_CELLS.size;
+  for(const [id,el] of [["lossy","pf-lossy"],["source","pf-source"]]){
+    const a=agents[id], n=a.hits.size;
+    document.getElementById(el).style.width=(n/tot*100)+"%";
+    const v=document.getElementById("pv-"+id); v.textContent=`${n}/${tot}`; v.className="pval"+(won(a)?" win":"");
+  }
+}
+function renderEventStrips(){
+  const cls=k=>k==="rumor"?"rumor":k==="reloc"?"state":"obs";
+  const evs=Object.keys(WORLD).map(Number).sort((a,b)=>a-b);
+  const html=evs.map(t=>{ const e=WORLD[t], pend=t>turn;
+    return `<div class="evrow${pend?' pending':''}"><span class="t">T${t}</span>`
+         + `<span class="chip ${cls(e.kind)}">${e.role}</span><span class="etext">${e.text}</span></div>`;
+  }).join("");
+  document.getElementById("ev-lossy").innerHTML=html;
+  document.getElementById("ev-source").innerHTML=html;
+}
+function renderRegime(){
+  const r=document.getElementById("regime");
+  if(scn.id!=="reclaim"){ r.textContent="lever: the freshness tag, not the budget"; r.className="regime"; return; }
+  const lo=budget<290;
+  r.textContent = lo ? "low integrity — policies diverge" : "high integrity — both keep the source";
+  r.className = "regime "+(lo?"reg-lo":"reg-hi");
+}
+function render(){
+  for(const [id,gid,nid,bid,sid,badge] of [
+      ["lossy","g-lossy","n-lossy","bar-lossy","s-lossy","badge-lossy"],
+      ["source","g-source","n-source","bar-source","s-source","badge-source"]]){
+    const a=agents[id]; const {kept,used}=compress(a); const R=reconstruct(kept,a);
+    renderGrid(gid,a,R); renderNote(nid,bid,kept,used); renderStats(sid,badge,a);
+  }
+  renderProgress(); renderEventStrips(); renderRegime();
+}
+
+// ─── scenario wiring ──────────────────────────────────────────────────────────
+function applyScenarioText(){
+  document.getElementById("sub").innerHTML=scn.sub;
+  document.getElementById("read").innerHTML=scn.read;
+  document.getElementById("ta-title").textContent=scn.a.title;
+  document.getElementById("ta-tag").textContent=scn.a.tag;
+  document.getElementById("ta-keeps").textContent=scn.a.keeps;
+  document.getElementById("tb-title").textContent=scn.b.title;
+  document.getElementById("tb-tag").textContent=scn.b.tag;
+  document.getElementById("tb-keeps").textContent=scn.b.keeps;
+  document.getElementById("pl-a").innerHTML=scn.pla;
+  document.getElementById("pl-b").innerHTML=scn.plb;
+  const slider=document.getElementById("budget");
+  slider.value=scn.budget; budget=scn.budget; document.getElementById("budval").textContent=budget;
+}
+function switchScenario(id){
+  scn=SCENARIOS[id];
+  document.querySelectorAll(".scn-btn").forEach(b=>b.classList.toggle("active", b.dataset.scn===id));
+  applyScenarioText(); reset();
+}
+
+// ─── controls ────────────────────────────────────────────────────────────────
+function play(){ if(timer) return; document.getElementById("play").textContent="Pause ❚❚";
+  timer=setInterval(()=>{ step(); if(turn>=WIN_TURNS||Object.values(agents).every(won)) stop(); }, 600); }
+function stop(){ if(timer){clearInterval(timer); timer=null;} const b=document.getElementById("play"); if(b) b.textContent="Play ▷"; }
+document.getElementById("reset").onclick=reset;
+document.getElementById("step").onclick=()=>{ stop(); step(); };
+document.getElementById("play").onclick=()=>{ timer?stop():play(); };
+document.getElementById("budget").oninput=e=>{ budget=+e.target.value; document.getElementById("budval").textContent=budget;
+  for(const a of Object.values(agents)) a.refire=null; render(); };
+document.querySelectorAll(".scn-btn").forEach(b=> b.onclick=()=>{ stop(); switchScenario(b.dataset.scn); });
+switchScenario("reclaim");
+
+// when embedded in an iframe, report height so the host page can size us to fit
+function postHeight(){ if(window.parent!==window) parent.postMessage({type:"bb-height",height:document.documentElement.scrollHeight},"*"); }
+window.addEventListener("load",postHeight);
+if(window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+</script>
+</body>
+</html>
