@@ -454,9 +454,14 @@ document.querySelectorAll(".scn-btn").forEach(b=> b.onclick=()=>{ stop(); switch
 switchScenario("reclaim");
 
 // when embedded in an iframe, report height so the host page can size us to fit
-function postHeight(){ if(window.parent!==window) parent.postMessage({type:"bb-height",height:Math.ceil(document.documentElement.scrollHeight)},"*"); }
+function postHeight(){
+  if(window.parent===window) return;
+  const el=document.querySelector(".wrap");                       // measure the CONTENT, not the
+  const h=el ? Math.ceil(el.offsetTop+el.offsetHeight) : document.documentElement.scrollHeight;
+  parent.postMessage({type:"bb-height",height:h},"*");            // viewport-filled body (avoids a resize loop)
+}
 window.addEventListener("load",()=>{ postHeight(); setTimeout(postHeight,400); });
-if(window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+if(window.ResizeObserver){ const _w=document.querySelector(".wrap"); if(_w) new ResizeObserver(postHeight).observe(_w); }
 </script>
 </body>
 </html>
