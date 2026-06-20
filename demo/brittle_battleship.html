@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Brittle Battleship — memory policy decides correctability</title>
+<title>Brittle Battleship: memory policy decides correctability</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -179,7 +179,7 @@
     </div>
   </div>
 
-  <div class="foot">Deterministic illustration of the mechanism — no model calls. Each agent's failure is computed
+  <div class="foot">Deterministic illustration of the mechanism, no model calls. Each agent's failure is computed
   from its compression policy, not scripted. Companion to “Brittle Memory: How Compression Decides Whether a
   Language Model Can Be Corrected.”</div>
 </div>
@@ -206,7 +206,7 @@ const SCENARIOS={
       {name:"cruiser",  cells:[[5,6],[6,6],[7,6]]},
       {name:"destroyer",cells:[[7,0],[7,1]]}],
     world:{1:{kind:"rumor",role:"RUMOR",text:"recon: enemy carrier lies in the NORTH (rows A–C)"},
-           4:{kind:"sonar",role:"OBSERVATION",text:"sonar sweep — rows A–C report EMPTY"}},
+           4:{kind:"sonar",role:"OBSERVATION",text:"sonar sweep: rows A–C report EMPTY"}},
     sonarStamp:4, hasBudgetRegime:true,
   },
   freshness:{
@@ -223,7 +223,7 @@ const SCENARIOS={
     ships:()=>[
       {name:"cruiser", cells:[[3,0],[3,1],[3,2]]},        // static, found early
       {name:"runner",  cells:[[6,4],[6,5]]}],             // mobile; relocates north at T4
-    world:{1:{kind:"sonar",role:"OBSERVATION",text:"sonar sweep — rows A–C report EMPTY"},
+    world:{1:{kind:"sonar",role:"OBSERVATION",text:"sonar sweep: rows A–C report EMPTY"},
            4:{kind:"reloc",role:"STATE-CHANGE",text:"vessel slips north; the earlier all-clear is now stale"}},
     sonarStamp:1, reloc:{ship:"runner", to:[[1,3],[1,4]], turn:4}, hasBudgetRegime:false,
   },
@@ -354,21 +354,21 @@ function statRow(a){
   if(scn.id==="freshness"){
     const to=scn.reloc.to.map(c=>key(c[0],c[1]));
     const got = a.relocTurn && to.every(k=>a.hits.has(k));
-    return ["relocated vessel", a.relocTurn ? (got?"found":"missed") : "—", a.relocTurn?(got?"ok":"bad"):""];
+    return ["relocated vessel", a.relocTurn ? (got?"found":"missed") : "n/a", a.relocTurn?(got?"ok":"bad"):""];
   }
   return ["north shots after sonar", a.northAfterSweep, a.northAfterSweep>0?"bad":"ok"];
 }
 function badgeFor(a){
   if(scn.id==="freshness"){
-    if(won(a)) return ['b-won','re-acquired — expired the stale sonar, found the mover'];
-    if(a.relocTurn && !a.fresh) return ['b-stuck','stuck — trusts a stale all-clear, never rechecks the north'];
+    if(won(a)) return ['b-won','re-acquired: expired the stale sonar, found the mover'];
+    if(a.relocTurn && !a.fresh) return ['b-stuck','stuck: trusts a stale all-clear, never rechecks the north'];
     if(a.relocTurn && a.fresh) return ['b-won','expired the stale sonar, searching the north'];
     return null;
   }
   if(won(a)) return ['b-won','FLEET SUNK · correctable'];
-  if(a.sawSonar && a.northAfterSweep>0) return ['b-stuck','stuck — hunting the ghost, sonar was dropped'];
-  if(a.sawSonar && a.redundant>5) return ['b-stuck','stuck — dropped its own shot record'];
-  if(a.sawSonar) return ['b-won','reclaimed — sonar excluded the north'];
+  if(a.sawSonar && a.northAfterSweep>0) return ['b-stuck','stuck: hunting the ghost, sonar was dropped'];
+  if(a.sawSonar && a.redundant>5) return ['b-stuck','stuck: dropped its own shot record'];
+  if(a.sawSonar) return ['b-won','reclaimed: sonar excluded the north'];
   return null;
 }
 function renderStats(id, badgeId, a){
@@ -407,7 +407,7 @@ function renderRegime(){
   const r=document.getElementById("regime");
   if(scn.id!=="reclaim"){ r.textContent="lever: the freshness tag, not the budget"; r.className="regime"; return; }
   const lo=budget<290;
-  r.textContent = lo ? "low integrity — policies diverge" : "high integrity — both keep the source";
+  r.textContent = lo ? "low integrity: policies diverge" : "high integrity: both keep the source";
   r.className = "regime "+(lo?"reg-lo":"reg-hi");
 }
 function render(){
@@ -454,8 +454,8 @@ document.querySelectorAll(".scn-btn").forEach(b=> b.onclick=()=>{ stop(); switch
 switchScenario("reclaim");
 
 // when embedded in an iframe, report height so the host page can size us to fit
-function postHeight(){ if(window.parent!==window) parent.postMessage({type:"bb-height",height:document.documentElement.scrollHeight},"*"); }
-window.addEventListener("load",postHeight);
+function postHeight(){ if(window.parent!==window) parent.postMessage({type:"bb-height",height:Math.ceil(document.documentElement.scrollHeight)},"*"); }
+window.addEventListener("load",()=>{ postHeight(); setTimeout(postHeight,400); });
 if(window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
 </script>
 </body>
