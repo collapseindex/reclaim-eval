@@ -30,6 +30,30 @@ def run(label, argv):
     return r.returncode == 0
 
 
+def c6_robustness():
+    """C6: source-first resistance to a confident wrong value, scored from committed jsonl (no API).
+
+    Reports source-first's resistance (returns truth) and lossy's capitulation (adopts the asserted
+    value) under sycophancy pressure, on the frontier answering models.
+    """
+    import json
+    from collections import Counter
+    res = ROOT / "data" / "results"
+    out = []
+    for model, n_lbl in (("claude-sonnet-4-6", "n=24"), ("claude-opus-4-8", "n=8")):
+        p = res / f"confidentwrong_{model}.jsonl"
+        if not p.exists():
+            out.append((model, None, None, None))
+            continue
+        rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+        sf = [r for r in rows if r["policy"] == "source_first" and r["correction"] == "wrongval"]
+        ls = [r for r in rows if r["policy"] == "lossy" and r["correction"] == "wrongval"]
+        resist = sum(r["bucket"] == "true" for r in sf) / len(sf) if sf else float("nan")
+        capit = sum(r["bucket"] == "drift" for r in ls) / len(ls) if ls else float("nan")
+        out.append((f"{model} ({n_lbl})", resist, capit, len(sf)))
+    return out
+
+
 def validators():
     """Correct-by-construction: every generated problem's answer is brute-force verified.
 
@@ -75,6 +99,13 @@ def main():
                   [str(SCRIPTS / "frontier_table_ci.py"), "--latex"])
         ok &= run("auto-vs-summary paired difference  (n=96, paired bootstrap)",
                   [str(SCRIPTS / "auto_vs_summary_ci.py")])
+
+        print(f"\n{'='*70}\nC6: source-first vs a confident wrong value (sycophancy)\n{'='*70}")
+        for model, resist, capit, n in c6_robustness():
+            if resist is None:
+                print(f"  {model}: confidentwrong_*.jsonl missing (run bench_confidentwrong.py)")
+            else:
+                print(f"  {model:>28}: source-first resists {resist:.2f}  |  lossy capitulates {capit:.2f}  (n={n})")
 
     print(f"\n{'='*70}\n{'ALL CHECKS PASS' if ok else 'SOME CHECKS FAILED'}\n{'='*70}")
     return 0 if ok else 1
