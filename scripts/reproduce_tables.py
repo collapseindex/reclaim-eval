@@ -54,6 +54,29 @@ def c6_robustness():
     return out
 
 
+def adversarial_robustness():
+    """Adversarial battery (#1 sustained push, #2 fabricated source), scored from jsonl (no API).
+
+    Reports source-first resistance per attack x model -- the capability-gated boundary.
+    """
+    import json
+    res = ROOT / "data" / "results"
+    models = [("llama", "llama-8b"), ("claude-sonnet-4-6", "Sonnet"), ("claude-opus-4-8", "Opus")]
+    out = {}
+    for mode in ("multiturn", "fabricated"):
+        row = {}
+        for fn, lbl in models:
+            p = res / f"adversarial_{mode}_{fn}.jsonl"
+            if not p.exists():
+                row[lbl] = None
+                continue
+            rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+            sf = [r for r in rows if r["policy"] == "source_first" and r["correction"] == mode]
+            row[lbl] = (sum(r["bucket"] == "true" for r in sf) / len(sf)) if sf else float("nan")
+        out[mode] = row
+    return out
+
+
 def validators():
     """Correct-by-construction: every generated problem's answer is brute-force verified.
 
@@ -106,6 +129,15 @@ def main():
                 print(f"  {model}: confidentwrong_*.jsonl missing (run bench_confidentwrong.py)")
             else:
                 print(f"  {model:>28}: source-first resists {resist:.2f}  |  lossy capitulates {capit:.2f}  (n={n})")
+
+        print(f"\n{'='*70}\nAdversarial battery: capability-gated robustness of the fix\n{'='*70}")
+        adv = adversarial_robustness()
+        print(f"  {'attack':>26} | {'llama-8b':>9} {'Sonnet':>7} {'Opus':>6}")
+        for mode, lbl in (("multiturn", "sustained push"), ("fabricated", "fabricated source")):
+            r = adv[mode]
+            cells = "  ".join(f"{r[m]:.2f}" if isinstance(r.get(m), float) else "  -- "
+                              for m in ("llama-8b", "Sonnet", "Opus"))
+            print(f"  {lbl:>26} |   {cells}")
 
     print(f"\n{'='*70}\n{'ALL CHECKS PASS' if ok else 'SOME CHECKS FAILED'}\n{'='*70}")
     return 0 if ok else 1
