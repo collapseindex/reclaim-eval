@@ -176,6 +176,11 @@ def memory_note(problem: Problem, integrity: float, policy: str = "lossy") -> st
         # tight budget: keep ONLY the source, drop the (re-derivable) conclusion
         return (f"(Memory of an earlier session.) The facts were: {facts}. You were "
                 f"determining {ask}; the earlier answer may be off.")
+    if policy == "source_plus_conclusion":
+        # keep BOTH the recomputable source AND the stale conclusion: tests whether the
+        # conclusion re-introduces the attractor even when the source is present.
+        return (f"(Memory of an earlier session.) The facts were: {facts}. You concluded "
+                f"{ask} was {concl}.")
     if policy == "lossy_padded":
         base = memory_note(problem, integrity, "lossy")
         target = len(memory_note(problem, integrity, "source_first"))

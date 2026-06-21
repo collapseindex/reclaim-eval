@@ -77,6 +77,37 @@ def adversarial_robustness():
     return out
 
 
+def reviewer_baselines():
+    """ChatGPT-review baselines, scored from jsonl (no API): source+conclusion, correction
+    taxonomy (are-you-sure / correct-value), and tuned source-keyed retrieval."""
+    import json
+    from collections import defaultdict, Counter
+    res = ROOT / "data" / "results"
+    out = {}
+
+    def rr(path, key=lambda r: r["correct"], filt=lambda r: True):
+        if not path.exists():
+            return None
+        rows = [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
+        xs = [1 if key(r) else 0 for r in rows if filt(r)]
+        return (sum(xs) / len(xs), len(xs)) if xs else None
+
+    # source+conclusion at the wall, per model
+    sc = {}
+    for m, lbl in (("llama", "llama"), ("claude-sonnet-4-6", "Sonnet"), ("claude-opus-4-8", "Opus")):
+        p = res / f"srcconcl_{m}_arith.jsonl"
+        sc[lbl] = rr(p, filt=lambda r: r["policy"] == "source_plus_conclusion")
+    out["source+conclusion"] = sc
+
+    # tuned retrieval: source-keyed vs naive (directed), same store
+    tp = res / "realworld_meta-llama_llama-3.1-8b-instruct_arith_t0.7_tunedret.jsonl"
+    tr = {}
+    for v in ("vector_rag", "vector_rag_source", "source_first@0.1"):
+        tr[v] = rr(tp, filt=lambda r, v=v: r["variant"] == v and r["arm"] == "directed")
+    out["tuned_retrieval"] = tr
+    return out
+
+
 def validators():
     """Correct-by-construction: every generated problem's answer is brute-force verified.
 
@@ -138,6 +169,17 @@ def main():
             cells = "  ".join(f"{r[m]:.2f}" if isinstance(r.get(m), float) else "  -- "
                               for m in ("llama-8b", "Sonnet", "Opus"))
             print(f"  {lbl:>26} |   {cells}")
+
+        print(f"\n{'='*70}\nReviewer baselines (source+conclusion, tuned retrieval)\n{'='*70}")
+        rb = reviewer_baselines()
+        sc = rb["source+conclusion"]
+        cells = "  ".join(f"{sc[m][0]:.2f}" if sc.get(m) else " -- " for m in ("llama", "Sonnet", "Opus"))
+        print(f"  source+conclusion @ wall (llama/Sonnet/Opus):  {cells}  (vs source-first 1.00)")
+        tr = rb["tuned_retrieval"]
+        def g(v):
+            return f"{tr[v][0]:.2f}" if tr.get(v) else "--"
+        print(f"  tuned retrieval: naive={g('vector_rag')}  source-keyed={g('vector_rag_source')}  "
+              f"distilled source-first={g('source_first@0.1')}")
 
     print(f"\n{'='*70}\n{'ALL CHECKS PASS' if ok else 'SOME CHECKS FAILED'}\n{'='*70}")
     return 0 if ok else 1

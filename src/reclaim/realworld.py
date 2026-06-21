@@ -142,6 +142,32 @@ def vector_rag(transcript, model: str, api_key: str | None = None, k: int = 4) -
     return " ".join(chunks[i] for i in top)
 
 
+def vector_rag_source(transcript, model: str, api_key: str | None = None, k: int = 4) -> str:
+    """Tuned retrieval: identical store and budget to vector_rag, but the query targets the
+    SOURCE-bearing turns (the original line items / given facts) instead of the conclusion.
+    This is the baseline a reviewer asks for: it shows the naive failure is a query-direction
+    problem, not a retrieval problem. Same dial, two settings, opposite outcomes."""
+    import numpy as np
+    from fastembed import TextEmbedding
+
+    chunks = [m["content"] for m in transcript if m.get("role") in ("user", "assistant")]
+    if not chunks:
+        return ""
+    embedder = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+    embs = list(embedder.embed(chunks))
+    q = ("the original line items, quantities, prices, and given facts stated at the start, "
+         "the working needed to recompute the total from scratch")
+    qemb = list(embedder.embed([q]))[0]
+
+    def cos(a, b):
+        return float(np.dot(a, b) / ((np.linalg.norm(a) * np.linalg.norm(b)) + 1e-9))
+
+    sims = [cos(qemb, e) for e in embs]
+    top = sorted(range(len(chunks)), key=lambda i: sims[i], reverse=True)[:k]
+    top.sort()
+    return " ".join(chunks[i] for i in top)
+
+
 SOURCE_FIRST_PROMPT = (
     "You are compressing a conversation into a short memory note for a FUTURE session that "
     "may need to CORRECT a mistake in it. Keep every given fact, quantity, and unit needed "
@@ -176,6 +202,7 @@ def source_first_auto(transcript, model: str, api_key: str | None = None,
 BUILDERS = {
     "langchain_summary": langchain_summary,   # progressive LLM summary
     "mem0": mem0_memory,                       # LLM fact-extraction + vector retrieval
-    "vector_rag": vector_rag,                  # raw-turn retrieval, no LLM rewriting
+    "vector_rag": vector_rag,                  # raw-turn retrieval, conclusion-keyed query
+    "vector_rag_source": vector_rag_source,    # raw-turn retrieval, source-keyed query (tuned)
     "source_first_auto": source_first_auto,    # the fix, as a drop-in write policy
 }
