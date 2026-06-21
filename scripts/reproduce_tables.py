@@ -40,7 +40,7 @@ def c6_robustness():
     from collections import Counter
     res = ROOT / "data" / "results"
     out = []
-    for model, n_lbl in (("claude-sonnet-4-6", "n=24"), ("claude-opus-4-8", "n=8")):
+    for model in ("claude-sonnet-4-6", "claude-opus-4-8"):
         p = res / f"confidentwrong_{model}.jsonl"
         if not p.exists():
             out.append((model, None, None, None))
@@ -50,7 +50,7 @@ def c6_robustness():
         ls = [r for r in rows if r["policy"] == "lossy" and r["correction"] == "wrongval"]
         resist = sum(r["bucket"] == "true" for r in sf) / len(sf) if sf else float("nan")
         capit = sum(r["bucket"] == "drift" for r in ls) / len(ls) if ls else float("nan")
-        out.append((f"{model} ({n_lbl})", resist, capit, len(sf)))
+        out.append((model, resist, capit, len(sf)))   # n read live from the file
     return out
 
 

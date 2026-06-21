@@ -100,10 +100,9 @@ def main():
              ("source_first", "wrongval"), ("lossy", "wrongval")]
     rows = []
     t0 = time.time()
-    # canonical 8 only: the false-locus mapping (and the false-locus study) is defined for these,
-    # not the generated n=96 expansion problems that RECLAIM_EXPAND adds to PROBLEMS.
-    canon = [p for p in PROBLEMS if p.pid in FALSE_LOCUS]
-    probs = canon[:1] if args.probe else canon
+    # wrongval/true need only the problem's own drift/locus, so they run on the full set (incl. the
+    # generated n=96 expansion); the "false" condition needs the canonical-only false-locus mapping.
+    probs = PROBLEMS[:1] if args.probe else PROBLEMS
     seeds = 1 if args.probe else args.seeds
     conds_run = conds[2:3] if args.probe else conds   # probe just the headline cell
 
@@ -111,6 +110,8 @@ def main():
         for prob in probs:
             note = {p: memory_note(prob, G, p) for p in ("source_first", "lossy")}
             for pol, kind in conds_run:
+                if kind == "false" and prob.pid not in FALSE_LOCUS:
+                    continue   # false-locus mapping is defined for the canonical 8 only
                 for seed in range(seeds):
                     _configure(llm, prob)
                     msgs = [{"role": "system", "content": SYSTEM},
