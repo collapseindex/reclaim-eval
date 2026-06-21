@@ -29,6 +29,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "data" / "results"
 
+# current problem ids, used to ignore orphaned rows from superseded generated problem sets
+import sys as _sys  # noqa: E402
+_sys.path.insert(0, str(ROOT / "src"))
+from reclaim.problems import TASKS as _PROBS  # noqa: E402
+PID2PROB = {p.pid for fam in _PROBS.values() for p in fam}
+
 LLAMA_MAIN = "realworld_meta-llama_llama-3.1-8b-instruct_{task}_t0.7.jsonl"
 LLAMA_LB = "realworld_meta-llama_llama-3.1-8b-instruct_{task}_t0.7_leaderboard.jsonl"
 CLAUDE = "claude_{model}.jsonl"
@@ -39,8 +45,8 @@ LLAMA_SRC = {
     "mem0": "main",
     "lossy@0.1": "main",
     "source_first@0.1": "main",
-    "source_first_auto": "lb",
-    "vector_rag": "lb",
+    "source_first_auto": "main",   # n96 crank wrote auto/vector to the main file (matches the
+    "vector_rag": "main",          # Sonnet/Opus replay memories); leaderboard file was the old n24
 }
 
 # Paper row order and labels.
@@ -93,7 +99,7 @@ def llama_cells(task):
     for var, _ in ROWS:
         src = by[LLAMA_SRC[var]]
         cells[var] = [1 if r["correct"] else 0 for r in src
-                      if r["variant"] == var and r["arm"] == ARM]
+                      if r["variant"] == var and r["arm"] == ARM and r.get("pid") in PID2PROB]
     return cells
 
 
@@ -101,7 +107,7 @@ def claude_cells(model, task):
     rows = _read(RES / CLAUDE.format(model=model))
     cells = defaultdict(list)
     for r in rows:
-        if r["arm"] == ARM and r.get("task") == task:
+        if r["arm"] == ARM and r.get("task") == task and r.get("pid") in PID2PROB:
             cells[r["variant"]].append(1 if r["correct"] else 0)
     return cells
 

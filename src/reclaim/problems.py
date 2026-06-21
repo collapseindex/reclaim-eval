@@ -186,3 +186,17 @@ FOLLOWUPS_LOGIC: list[str] = [
 # task registry and the follow-up set keyed by answer kind
 TASKS: dict[str, list[Problem]] = {"arith": PROBLEMS, "logic": PROBLEMS_LOGIC}
 FOLLOWUPS_BY_KIND: dict[str, list[str]] = {"number": FOLLOWUPS, "text": FOLLOWUPS_LOGIC}
+
+
+# ── expand each family 8 -> 32 (n=24 -> n=96) via verified generators ──────────────
+# Default on; set RECLAIM_EXPAND=0 to reproduce the original 8-problem (n=24) runs.
+import os as _os  # noqa: E402
+if _os.environ.get("RECLAIM_EXPAND", "1") == "1":
+    from .problems_gen import (gen_arith, gen_logic, gen_assign,  # noqa: E402
+                               validate_arith, validate_logic, validate_assign)
+    _ga, _fa = gen_arith(24, seed=1); validate_arith(_ga, _fa)
+    # logic expansion mirrors the canonical variety: 12 ordering + 12 assignment puzzles
+    _gl, _fl = gen_logic(12, seed=2); validate_logic(_gl, _fl)
+    _gs, _fs = gen_assign(12, seed=3); validate_assign(_gs, _fs)
+    PROBLEMS.extend(_ga); PROBLEMS_LOGIC.extend(_gl); PROBLEMS_LOGIC.extend(_gs)
+    FACTS.update(_fa); FACTS.update(_fl); FACTS.update(_fs)

@@ -173,6 +173,9 @@ python scripts/bench_claude.py --model claude-sonnet-4-6           # full board 
 # analysis (no API):
 python scripts/analyze_realworld.py "data/results/realworld_*arith*.jsonl"  # RR + bootstrap CIs
 python scripts/confab_audit.py "data/results/realworld_*.jsonl"             # invented-number count
+
+# reproduce every paper table + run the correct-by-construction validators (no API):
+python scripts/reproduce_tables.py     # regenerates tab:wall/logic/frontier, exits non-zero on any validator failure
 ```
 
 Runs are checkpointed per `(seed, problem, policy)` under `data/results/`, so re-running
