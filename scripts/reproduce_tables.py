@@ -137,6 +137,39 @@ def blank_vs_lossy():
     return out
 
 
+def prompt_sweep():
+    """source-first-auto prompt-sensitivity (reviewer experiment), from jsonl (no API).
+
+    Four intent-equivalent distillation prompts on a fixed llama-arith set; the spread is the result.
+    """
+    import json
+    p = ROOT / "data" / "results" / "promptsweep_meta-llama_llama-3.1-8b-instruct_arith.jsonl"
+    if not p.exists():
+        return None
+    rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+    by = {}
+    for r in rows:
+        by.setdefault(r["prompt"], []).append(r["correct"])
+    return {k: (sum(v) / len(v), len(v)) for k, v in by.items()}
+
+
+def endogenous():
+    """Endogenous (self-generated) error wall (reviewer experiment), from jsonl (no API)."""
+    import json
+    from collections import Counter
+    p = ROOT / "data" / "results" / "endogenous_meta-llama_llama-3.1-8b-instruct_n10.jsonl"
+    if not p.exists():
+        return None
+    rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+    out = {}
+    for pol in ("lossy_endo", "srcfirst_endo"):
+        sub = [r for r in rows if r["policy"] == pol]
+        if sub:
+            c = Counter(r["bucket"] for r in sub); n = len(sub)
+            out[pol] = {b: c[b] / n for b in ("true", "inherit", "novel", "abstain")} | {"n": n}
+    return out
+
+
 def validators():
     """Correct-by-construction: every generated problem's answer is brute-force verified.
 
@@ -209,6 +242,27 @@ def main():
                 if r:
                     print(f"  {lbl:>13} {pol:>6}: emit {r['emit']:.2f}  abstain {r['abstain']:.2f}  "
                           f"attractor {r['attractor']:.2f}  (n={r['n']})")
+
+        print(f"\n{'='*70}\nPrompt-sensitivity of source-first-auto (llama arith, fixed set)\n{'='*70}")
+        ps = prompt_sweep()
+        if ps is None:
+            print("  promptsweep_*.jsonl missing (run bench_promptsweep.py)")
+        else:
+            for name, (rate, n) in ps.items():
+                print(f"  {name:>14}: reclaim {rate:.2f}  (n={n})")
+            vals = [r for r, _ in ps.values()]
+            print(f"  spread across prompt wordings: {min(vals):.2f}-{max(vals):.2f}")
+
+        print(f"\n{'='*70}\nEndogenous (self-generated) error wall (llama, N=10 ledgers)\n{'='*70}")
+        en = endogenous()
+        if en is None:
+            print("  endogenous_*.jsonl missing (run bench_endogenous.py)")
+        else:
+            for pol in ("lossy_endo", "srcfirst_endo"):
+                r = en.get(pol)
+                if r:
+                    print(f"  {pol:>14}: true {r['true']:.2f}  inherit {r['inherit']:.2f}  "
+                          f"abstain {r['abstain']:.2f}  (n={r['n']})")
 
         print(f"\n{'='*70}\nReviewer baselines (source+conclusion, tuned retrieval)\n{'='*70}")
         rb = reviewer_baselines()
