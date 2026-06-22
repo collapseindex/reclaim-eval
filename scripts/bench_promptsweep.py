@@ -33,9 +33,17 @@ from reclaim.problems import TASKS
 from reclaim.experiment import (DEPTHS, SYSTEM, build_trajectory, reclaim_cross,
                                 score, _logged_answer)
 from reclaim.realworld import SOURCE_FIRST_PROMPT
-from reclaim.llm import OpenRouterLLM
+from reclaim.llm import OpenRouterLLM, AnthropicLLM
 
 ENVELOPE = "(Memory of an earlier session.) "  # same framing the hand-built notes carry
+
+
+def make_llm(model, temp):
+    if model.startswith("claude"):
+        return AnthropicLLM(model=model, temperature=temp)
+    if model in ("llama", "meta-llama/llama-3.1-8b-instruct"):
+        return OpenRouterLLM(model="meta-llama/llama-3.1-8b-instruct", temperature=temp)
+    return OpenRouterLLM(model=model, temperature=temp)
 
 # Intent-preserving rewordings of the distillation instruction: each says "keep the source/working
 # needed to recompute, drop the concluded answer." v0 is the paper's verbatim prompt.
@@ -79,7 +87,7 @@ def main() -> int:
         problems, args.seeds = problems[:1], 1
     out = ROOT / "data" / "results" / f"promptsweep_{args.model.replace('/', '_')}_{args.task}.jsonl"
 
-    llm = OpenRouterLLM(model=args.model, temperature=args.temp)
+    llm = make_llm(args.model, args.temp)
     rows = []
     t0 = time.time()
     with open(out, "w", encoding="utf-8") as fh:

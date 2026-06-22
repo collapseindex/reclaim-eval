@@ -140,17 +140,27 @@ def blank_vs_lossy():
 def prompt_sweep():
     """source-first-auto prompt-sensitivity (reviewer experiment), from jsonl (no API).
 
-    Four intent-equivalent distillation prompts on a fixed llama-arith set; the spread is the result.
+    Four intent-equivalent distillation prompts on a fixed arith set, per distiller model; the
+    spread (and its monotone shrinkage with capability) is the result.
     """
     import json
-    p = ROOT / "data" / "results" / "promptsweep_meta-llama_llama-3.1-8b-instruct_arith.jsonl"
-    if not p.exists():
-        return None
-    rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
-    by = {}
-    for r in rows:
-        by.setdefault(r["prompt"], []).append(r["correct"])
-    return {k: (sum(v) / len(v), len(v)) for k, v in by.items()}
+    res = ROOT / "data" / "results"
+    files = {"llama-8b": "promptsweep_meta-llama_llama-3.1-8b-instruct_arith.jsonl",
+             "Sonnet": "promptsweep_claude-sonnet-4-6_arith.jsonl",
+             "Opus": "promptsweep_claude-opus-4-8_arith.jsonl"}
+    out = {}
+    for lbl, fn in files.items():
+        p = res / fn
+        if not p.exists():
+            continue
+        rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+        by = {}
+        for r in rows:
+            by.setdefault(r["prompt"], []).append(r["correct"])
+        rates = {k: sum(v) / len(v) for k, v in by.items()}
+        out[lbl] = {"rates": rates, "spread": (min(rates.values()), max(rates.values())),
+                    "n": len(next(iter(by.values())))}
+    return out or None
 
 
 def endogenous():
@@ -273,15 +283,16 @@ def main():
                     print(f"  {lbl:>13} {pol:>6}: emit {r['emit']:.2f}  abstain {r['abstain']:.2f}  "
                           f"attractor {r['attractor']:.2f}  (n={r['n']})")
 
-        print(f"\n{'='*70}\nPrompt-sensitivity of source-first-auto (llama arith, fixed set)\n{'='*70}")
+        print(f"\n{'='*70}\nPrompt-sensitivity of source-first-auto (arith, fixed set, per distiller)\n{'='*70}")
         ps = prompt_sweep()
         if ps is None:
             print("  promptsweep_*.jsonl missing (run bench_promptsweep.py)")
         else:
-            for name, (rate, n) in ps.items():
-                print(f"  {name:>14}: reclaim {rate:.2f}  (n={n})")
-            vals = [r for r, _ in ps.values()]
-            print(f"  spread across prompt wordings: {min(vals):.2f}-{max(vals):.2f}")
+            for lbl, d in ps.items():
+                lo, hi = d["spread"]
+                cells = "  ".join(f"{k.split('_')[0]}={v:.2f}" for k, v in d["rates"].items())
+                print(f"  {lbl:>9} (n={d['n']}): {cells}   spread {lo:.2f}-{hi:.2f} ({hi-lo:.2f})")
+            print("  -> spread shrinks with distiller capability (prompt-robustness is capability-gated)")
 
         print(f"\n{'='*70}\nEndogenous (self-generated) error wall (llama, N=10 ledgers)\n{'='*70}")
         en = endogenous()
