@@ -165,6 +165,10 @@ def memory_note(problem: Problem, integrity: float, policy: str = "lossy") -> st
       - lossy_padded: the budget-match CONTROL. Identical content to lossy, but padded
         with neutral filler up to the length of the source_first note, so any
         source_first advantage cannot be attributed to having more text.
+      - blank: the EMPTY-MEMORY baseline. Keeps neither the source nor the conclusion,
+        only that an earlier session was determining `ask`. There is no stale value to
+        inherit, so a wrong value the model emits here is not an inherited attractor; this
+        isolates whether lossy is worse than carrying nothing at all.
     """
     concl = _concl(problem)
     facts = FACTS[problem.pid]
@@ -187,6 +191,10 @@ def memory_note(problem: Problem, integrity: float, policy: str = "lossy") -> st
         while len(base) < target:
             base += PAD
         return base
+    if policy == "blank":
+        # keep NEITHER source nor conclusion: nothing to inherit, nothing to recompute from
+        return (f"(Memory of an earlier session.) You were earlier determining {ask}. "
+                f"No figures or details from that session were retained.")
     # lossy (default)
     if integrity >= 0.5:
         return (f"(Memory of an earlier session.) The facts were: {facts}. A note said "

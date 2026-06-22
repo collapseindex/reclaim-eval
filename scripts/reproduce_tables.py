@@ -108,6 +108,35 @@ def reviewer_baselines():
     return out
 
 
+def blank_vs_lossy():
+    """tab:blank: lossy memory vs empty memory at the wall, scored from jsonl (no API).
+
+    Reports confident-wrong emission and abstention per policy x base model. The headline is that
+    blank memory abstains (emit ~0) while lossy emits a confident wrong value (much of it the
+    inherited attractor), so a wrong-valued memory is strictly worse than no memory.
+    """
+    import json
+    res = ROOT / "data" / "results"
+    out = []
+    for fn, lbl in (("blank_llama", "llama-3.1-8b"),
+                    ("blank_x-ai_grok-4.3-20260430", "grok-4.3")):
+        p = res / f"{fn}.jsonl"
+        if not p.exists():
+            out.append((lbl, None)); continue
+        rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+        rec = {}
+        for pol in ("blank", "lossy"):
+            sub = [r for r in rows if r["policy"] == pol]
+            if not sub:
+                rec[pol] = None; continue
+            n = len(sub)
+            rec[pol] = {"emit": sum(r["bucket"] == "emit" for r in sub) / n,
+                        "abstain": sum(r["bucket"] == "abstain" for r in sub) / n,
+                        "attractor": sum(r.get("attractor") for r in sub) / n, "n": n}
+        out.append((lbl, rec))
+    return out
+
+
 def validators():
     """Correct-by-construction: every generated problem's answer is brute-force verified.
 
@@ -169,6 +198,17 @@ def main():
             cells = "  ".join(f"{r[m]:.2f}" if isinstance(r.get(m), float) else "  -- "
                               for m in ("llama-8b", "Sonnet", "Opus"))
             print(f"  {lbl:>26} |   {cells}")
+
+        print(f"\n{'='*70}\ntab:blank  (lossy vs EMPTY memory at the wall, arithmetic)\n{'='*70}")
+        for lbl, rec in blank_vs_lossy():
+            if rec is None:
+                print(f"  {lbl}: blank_*.jsonl missing (run bench_blank.py)")
+                continue
+            for pol in ("blank", "lossy"):
+                r = rec.get(pol)
+                if r:
+                    print(f"  {lbl:>13} {pol:>6}: emit {r['emit']:.2f}  abstain {r['abstain']:.2f}  "
+                          f"attractor {r['attractor']:.2f}  (n={r['n']})")
 
         print(f"\n{'='*70}\nReviewer baselines (source+conclusion, tuned retrieval)\n{'='*70}")
         rb = reviewer_baselines()
