@@ -170,6 +170,36 @@ def endogenous():
     return out
 
 
+def locating():
+    """Deployable locating: source-first-auto reclaim + bought-items-kept under noise (no oracle)."""
+    import json
+    from collections import defaultdict
+    p = ROOT / "data" / "results" / "locating_meta-llama_llama-3.1-8b-instruct.jsonl"
+    if not p.exists():
+        return None
+    rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+    by = defaultdict(list)
+    for r in rows:
+        by[r["decoys"]].append(r)
+    return {d: (sum(r["correct"] for r in s) / len(s),
+                sum(r["bought_kept"] for r in s) / len(s), len(s))
+            for d, s in sorted(by.items())}
+
+
+def completeness_weak():
+    """Completeness tag honored by a weak (8B) reader? (flag/abstain vs silent mis-sum)."""
+    import json
+    from collections import Counter
+    p = ROOT / "data" / "results" / "completeness_llama.jsonl"
+    if not p.exists():
+        return None
+    rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+    c = Counter(r["bucket"] for r in rows)
+    n = len(rows)
+    return {"flag_or_abstain": c["flagged_partial"] + c["abstain"],
+            "silent_missum": c["silent_missum"], "n": n}
+
+
 def validators():
     """Correct-by-construction: every generated problem's answer is brute-force verified.
 
@@ -263,6 +293,23 @@ def main():
                 if r:
                     print(f"  {pol:>14}: true {r['true']:.2f}  inherit {r['inherit']:.2f}  "
                           f"abstain {r['abstain']:.2f}  (n={r['n']})")
+
+        print(f"\n{'='*70}\nDeployable locating (source-first-auto under noise, no oracle)\n{'='*70}")
+        loc = locating()
+        if loc is None:
+            print("  locating_*.jsonl missing (run bench_locating.py)")
+        else:
+            for d, (rr, bk, n) in loc.items():
+                print(f"  decoys={d:>2}: auto reclaim {rr:.2f}  bought-kept {bk:.1f}/4  (n={n})")
+            print("  (naive collapses to 0.00 by 8 decoys; denoised oracle holds 1.00)")
+
+        print(f"\n{'='*70}\nCompleteness tag on a weak (8B) reader\n{'='*70}")
+        cw = completeness_weak()
+        if cw is None:
+            print("  completeness_llama.jsonl missing (run bench_completeness.py --model llama)")
+        else:
+            print(f"  llama: flag/abstain {cw['flag_or_abstain']}/{cw['n']}  "
+                  f"silent mis-sum {cw['silent_missum']}/{cw['n']}  (Opus: 94/96 flagged)")
 
         print(f"\n{'='*70}\nReviewer baselines (source+conclusion, tuned retrieval)\n{'='*70}")
         rb = reviewer_baselines()
