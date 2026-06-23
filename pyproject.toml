@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reclaim-eval"
+version = "0.2.0"
+description = "Reclaim evaluation: a judge-free benchmark for whether a compressed memory keeps a language model correctable."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Alex Kwon", email = "ask@collapseindex.org" }]
+keywords = ["llm", "memory", "evaluation", "compression", "agents", "brittle-memory"]
+dependencies = ["requests", "numpy", "python-dotenv"]
+
+[project.optional-dependencies]
+# the deployed-system comparison only (LangChain / mem0 / vector retrieval); the core
+# reclaim harness needs none of these.
+bench = [
+  "langchain>=1.0",
+  "langchain-classic",
+  "langchain-openai",
+  "langchain-community",
+  "mem0ai>=2.0",
+  "fastembed",
+]
+
+[project.urls]
+Homepage = "https://github.com/collapseindex/reclaim-eval"
+Repository = "https://github.com/collapseindex/reclaim-eval"
+
+[tool.setuptools.packages.find]
+where = ["src"]

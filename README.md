@@ -1,6 +1,7 @@
-# Brittle Memory
+# Reclaim Evaluation
 
-**How compression makes a language model confidently and permanently wrong.**
+**A lossy memory is worse than an empty one.** A judge-free benchmark for whether a compressed
+memory keeps a language model correctable: the *brittle memory* failure.
 
 A model drifts (commits to a wrong intermediate value) and only a compressed memory of
 that session carries forward. Whether a later correction can pull it back is decided by
@@ -15,6 +16,39 @@ battery, on top of v0.1.0's deployed-system benchmark (LangChain, mem0, vector r
 frontier replay up to `claude-opus-4-8`, the two-model hand-built sweep (a ~50x capability gap), two
 task families, and a length-matched control. Every table reproduces from committed results via
 `scripts/reproduce_tables.py` (no API).
+
+## Quickstart
+
+```bash
+pip install -e .             # the `reclaim` package + core deps (requests, numpy, dotenv)
+# pip install -e ".[bench]"  # + the deployed-system adapters (LangChain, mem0, fastembed)
+```
+
+Score a memory policy in ten lines, judge-free and with no API key. `DryRunLLM` is a
+deterministic stand-in for wiring; swap in `OpenRouterLLM(model=...)` for a real model, where
+the wall is `0.00` vs `~1.00` (see [Findings](#findings)):
+
+```python
+from reclaim import reclaim_rate, memory_note, FACTS, DryRunLLM
+
+llm = DryRunLLM()  # free; swap for OpenRouterLLM(model="meta-llama/llama-3.1-8b-instruct")
+
+# the two built-in policies at the wall (low integrity -> the source is dropped):
+for policy in ("lossy", "source_first"):
+    rr = reclaim_rate(llm, lambda p, g: memory_note(p, g, policy), integrity=0.1)
+    print(f"{policy:>12}: {rr:.2f}")          # source_first reclaims; lossy walls
+
+# now score YOUR policy: a function (problem, integrity) -> the carried memory note
+def my_policy(problem, integrity):
+    return f"(Earlier session.) Facts: {FACTS[problem.pid]}. You were finding {problem.ask}."
+print("   my_policy:", reclaim_rate(llm, my_policy, integrity=0.1))   # keeps the source
+```
+
+`reclaim_rate(llm, compress, problems=PROBLEMS, integrity=0.1, arm="directed")` returns the
+fraction of drifted problems whose known answer a correction recovers, scored by exact match. Keep
+the recomputable source in your note and it stays high; drop it for the conclusion and it walls, at
+the same budget. Pass `PROBLEMS_LOGIC` for the non-arithmetic family. Every experiment in the paper
+is a standalone script under `scripts/` (see [Run](#run)).
 
 ## Why this matters (if you ship agentic memory)
 
@@ -258,7 +292,7 @@ prevalent in tool-use and agentic memory than in open chat (llama 0.78 / 0.84 / 
 ## Run
 
 ```bash
-pip install -r requirements.txt
+pip install -e .                                       # or: pip install -r requirements.txt
 python -m pytest tests/                                # can-fail validators, no API
 
 # free (DryRun fake LLM):
@@ -327,5 +361,5 @@ safe for companies to depend on.
 
 ## Citation
 
-*Brittle Memory: How Compression Makes a Model Confidently and Permanently Wrong.*
+*Reclaim Evaluation: A Lossy Memory Is Worse Than an Empty One.*
 Alex Kwon, 2026. Paper in preparation; cite this repository in the meantime.
