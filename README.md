@@ -12,6 +12,49 @@ harness, the paired memory conditions, and the validators.
 frontier-model replay up to `claude-opus-4-8`, on top of the two-model hand-built sweep
 (a ~50x capability gap), two task families, and a length-matched control.
 
+## Why this matters (if you ship agentic memory)
+
+If your agent compresses history toward conclusions and drops the working (which the three
+most-shipped memory primitives all do), a single early error doesn't stay local. It becomes:
+
+- **Confidently wrong, never flagged.** A source-less model doesn't abstain; it emits the stale
+  value as the answer. A *lossy memory is worse than an empty one*: the empty-memory model
+  abstains, the lossy-memory model asserts. Adding a memory layer can strictly degrade safety.
+- **Silently failing.** The wrong value lands in the structured `ANSWER` field; the hedge, if
+  any, lands in the prose channel your parser ignores. On MultiWOZ, Opus caveats "unverified" in
+  *every single case* and still emits the drifted time on its answer line *half the time*. A
+  well-aligned model that "knows" it's unsure still feeds the wrong value downstream.
+- **Cascade-prone.** Memory feeds memory. One dropped-source error corrupts a blast radius that
+  grows with the chain (`0.7` to `7.3` of 8 hops) and stays uncorrectable however late you
+  correct. A no-error control injects exactly `0.0` at every depth, so it's the dropped source,
+  not the loop. Concretely: an agent fixes a config in hop 2, compresses `config = X`, builds six
+  decisions on X. You cannot repair that with "recheck the config." The working is gone.
+- **Immune to your usual fixes.** A stronger reader doesn't close it (same wall on an 8B and a
+  frontier model). A sharper correction doesn't (even naming the locus, or handing over the
+  correct value, doesn't always land). Better RAG doesn't (aiming retrieval *at* the source still
+  misses: the source is stated once, then buried under restatements of the wrong total). The
+  lever is **write-time distillation, not read-time retrieval.**
+
+Three production systems hit this, each a different way: a running summary **drops** the source,
+mem0-style extraction **buries** it (~38 fabricated numbers per memory; a stronger writer makes it
+*worse*), vector RAG **retrieves the conclusion** instead. Independent teams, same attractor: this
+is how people build memory, not a quirk of our setup. And it's invisible in QA. The system looks
+like it's working: confident, fluent, answering.
+
+**Two mitigations that survive contact, deployable today:**
+
+1. **Write source-first.** Keep the recomputable source, drop the re-derivable conclusion. Same
+   budget, restores correctability.
+2. **Tag completeness.** Record how many source items survived, so exceeding the budget fails
+   *loud* (flag/abstain) instead of silently summing a partial source.
+
+Both are gated on the reader honoring them (strong readers do, weak ones ignore the tag). And the
+honest scope: this is a controlled study on **compact, checkable sources** (totals, times, slot
+values, config values). That isn't a narrowing, it's a targeting: those are exactly where agentic
+and tool-use memory disproportionately live, and exactly where a confidently-wrong, uncorrectable
+memory gets *acted on* rather than read by a human. The full claim ledger, with what's `shown` vs
+`analytic` vs `suggestive`, is in the paper.
+
 ## The question
 
 When only a compressed memory of a drifted session carries forward, can a **directed**
@@ -23,9 +66,9 @@ correction recovers the known-correct answer.
   - *generic*: "something above is wrong, recheck."
   - *directed*: "the **<named locus>** is wrong, recheck **that**" (names the error site, no answer).
 - **Compress** the trace into one carried memory under three policies at matched budget:
-  - `lossy` — keep the conclusion, shed the source (the realistic default).
-  - `lossy_padded` — the control: `lossy` padded past `source_first`'s length (isolates text budget from content).
-  - `source_first` — keep the recomputable source, shed the re-derivable conclusion (the fix).
+  - `lossy`: keep the conclusion, shed the source (the realistic default).
+  - `lossy_padded` (the control): `lossy` padded past `source_first`'s length (isolates text budget from content).
+  - `source_first`: keep the recomputable source, shed the re-derivable conclusion (the fix).
 - **Measure** (objective, no judge, the task has a known answer): does the corrected answer come back right?
 
 **Brittle memory** is when `lossy` walls (RR -> 0) while `source_first` holds, at the same
@@ -133,13 +176,13 @@ Logic shows the same shape, softer: `source_first` 0.65/0.96/1.00, `source_first
 
 1. **Three deployed paradigms, three ways to lose the source.** The summary *drops* it; mem0
    *buries* it (its extractor confabulates ~25.6 invented numbers per memory, in 100% of
-   memories, against ~0 for every other policy — an objective count, no judge); vector
+   memories, against ~0 for every other policy, an objective count, no judge); vector
    retrieval *misses* it (keyed on the correction, it surfaces the conclusion turns, not the
    source). All three wall well below the fix.
 2. **The wall is model-invariant.** `lossy` and vector retrieval stay at 0.00 on every model,
    Opus included.
 3. **The gap widens with capability.** Source-kept climbs to a perfect 1.00 on Opus;
-   source-dropped stays 0.00. The strongest model has the *biggest* gap — capability sharpens
+   source-dropped stays 0.00. The strongest model has the *biggest* gap: capability sharpens
    the boundary, it does not soften it.
 4. **The fix deploys.** `source_first_auto` (a one-prompt compress-toward-source policy on
    arbitrary input) beats all three shipped systems, not just the hand-built note.
