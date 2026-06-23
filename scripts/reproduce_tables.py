@@ -210,6 +210,22 @@ def completeness_weak():
             "silent_missum": c["silent_missum"], "n": n}
 
 
+def prevalence():
+    """Prevalence audit: per-domain COMPACT-source fraction under two LLM labelers (Tab. tab:prevalence)."""
+    import json
+    from collections import Counter
+    out = {}
+    for who, fn in (("llama", "prevalence_audit_llama.jsonl"), ("grok", "prevalence_audit_grok.jsonl")):
+        p = ROOT / "data" / "results" / fn
+        if not p.exists():
+            return None
+        rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+        by = Counter((r["domain"], r["label"]) for r in rows)
+        dn = Counter(r["domain"] for r in rows)
+        out[who] = {d: (by[(d, "COMPACT")] / dn[d], dn[d]) for d in ("chat", "tool", "agentic")}
+    return out
+
+
 def validators():
     """Correct-by-construction: every generated problem's answer is brute-force verified.
 
@@ -332,6 +348,17 @@ def main():
             return f"{tr[v][0]:.2f}" if tr.get(v) else "--"
         print(f"  tuned retrieval: naive={g('vector_rag')}  source-keyed={g('vector_rag_source')}  "
               f"distilled source-first={g('source_first@0.1')}")
+
+        print(f"\n{'='*70}\nPrevalence audit (compact-source share, ordering robust / level not)\n{'='*70}")
+        pv = prevalence()
+        if pv is None:
+            print("  prevalence_audit_*.jsonl missing (run bench_prevalence.py)")
+        else:
+            for who in ("llama", "grok"):
+                cells = "  ".join(f"{d}={pv[who][d][0]:.2f}" for d in ("chat", "tool", "agentic"))
+                print(f"  {who:>5}: {cells}")
+            mono = all(pv[w]["chat"][0] < pv[w]["tool"][0] <= pv[w]["agentic"][0] for w in ("llama", "grok"))
+            print(f"  cross-domain ordering chat<tool<=agentic under both labelers: {mono}")
 
     print(f"\n{'='*70}\n{'ALL CHECKS PASS' if ok else 'SOME CHECKS FAILED'}\n{'='*70}")
     return 0 if ok else 1
