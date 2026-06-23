@@ -210,6 +210,25 @@ def completeness_weak():
             "silent_missum": c["silent_missum"], "n": n}
 
 
+def cascade():
+    """Cascade chain: blast radius + final reclaim per (H, policy) across two models (Tab. tab:cascade)."""
+    import json
+    from collections import defaultdict
+    out = {}
+    for who, fn in (("llama", "cascade_meta-llama_llama-3.1-8b-instruct.jsonl"),
+                    ("sonnet", "cascade_claude-sonnet-4-6.jsonl")):
+        p = ROOT / "data" / "results" / fn
+        if not p.exists():
+            return None
+        rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+        ag = defaultdict(list)
+        for r in rows:
+            ag[(r["H"], r["policy"], r["planted"])].append(r)
+        out[who] = {k: (sum(x["blast"] for x in v) / len(v), sum(x["reclaim"] for x in v) / len(v))
+                    for k, v in ag.items()}
+    return out
+
+
 def prevalence():
     """Prevalence audit: per-domain COMPACT-source fraction under two LLM labelers (Tab. tab:prevalence)."""
     import json
@@ -348,6 +367,20 @@ def main():
             return f"{tr[v][0]:.2f}" if tr.get(v) else "--"
         print(f"  tuned retrieval: naive={g('vector_rag')}  source-keyed={g('vector_rag_source')}  "
               f"distilled source-first={g('source_first@0.1')}")
+
+        print(f"\n{'='*70}\nCascade chain (one error -> growing blast radius, uncorrectable)\n{'='*70}")
+        cas = cascade()
+        if cas is None:
+            print("  cascade_*.jsonl missing (run bench_cascade.py)")
+        else:
+            for who in ("llama", "sonnet"):
+                d = cas[who]
+                lb = "  ".join(f"H{H}:{d[(H,'lossy',True)][0]:.1f}" for H in (1, 2, 4, 8) if (H, 'lossy', True) in d)
+                lr = "  ".join(f"H{H}:{d[(H,'lossy',True)][1]:.2f}" for H in (1, 2, 4, 8) if (H, 'lossy', True) in d)
+                print(f"  {who:>6} lossy blast: {lb}   lossy reclaim: {lr}")
+            ctrl = all(cas[w].get((H, 'lossy', False), (9, 0))[0] == 0.0
+                       for w in ('llama', 'sonnet') for H in (1, 2, 4, 8) if (H, 'lossy', False) in cas[w])
+            print(f"  no-error control blast == 0 at every H on both models: {ctrl}")
 
         print(f"\n{'='*70}\nPrevalence audit (compact-source share, ordering robust / level not)\n{'='*70}")
         pv = prevalence()
