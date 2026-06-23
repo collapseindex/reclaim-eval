@@ -1,6 +1,6 @@
 # Brittle Memory
 
-**How compression decides whether a language model can be corrected.**
+**How compression makes a language model confidently and permanently wrong.**
 
 A model drifts (commits to a wrong intermediate value) and only a compressed memory of
 that session carries forward. Whether a later correction can pull it back is decided by
@@ -327,5 +327,5 @@ safe for companies to depend on.
 
 ## Citation
 
-*Brittle Memory: How Compression Decides Whether a Language Model Can Be Corrected.*
+*Brittle Memory: How Compression Makes a Model Confidently and Permanently Wrong.*
 Alex Kwon, 2026. Paper in preparation; cite this repository in the meantime.
