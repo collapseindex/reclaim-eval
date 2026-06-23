@@ -8,9 +8,13 @@ that session carries forward. Whether a later correction can pull it back is dec
 welds in, keep the source and it stays fixable, at the same budget. This repo is the
 harness, the paired memory conditions, and the validators.
 
-**v0.1.0** adds a deployed-system benchmark (LangChain, mem0, raw vector retrieval) and a
-frontier-model replay up to `claude-opus-4-8`, on top of the two-model hand-built sweep
-(a ~50x capability gap), two task families, and a length-matched control.
+**v0.2.0** adds the memory-loop **cascade** (one error compounds across a chain, two models), a
+**prevalence audit** over real assistant/tool/agentic corpora, **MultiWOZ** (the wall on real fuzzy
+dialogue), the **silent-failure** boundary and its completeness-tag fix, and an adversarial-injection
+battery, on top of v0.1.0's deployed-system benchmark (LangChain, mem0, vector retrieval), the
+frontier replay up to `claude-opus-4-8`, the two-model hand-built sweep (a ~50x capability gap), two
+task families, and a length-matched control. Every table reproduces from committed results via
+`scripts/reproduce_tables.py` (no API).
 
 ## Why this matters (if you ship agentic memory)
 
@@ -77,10 +81,11 @@ flat if so.
 
 ## Findings
 
-All runs: 8 problems x 3 seeds, temperature 0.7. Single-conversation results are
+Core sweep: 8 problems x 3 seeds, temperature 0.7. Single-conversation results are
 llama-3.1-8b. Cross-session results span **two models** (llama-3.1-8b and grok-4.3,
 pinned `20260430`, a ~50x capability gap) and **two task families** (arithmetic and a
-non-arithmetic constraint-logic set).
+non-arithmetic constraint-logic set). The boundary, cascade, MultiWOZ, and prevalence
+sections below state their own configs.
 
 ### Single conversation (llama-3.1-8b)
 
@@ -187,6 +192,69 @@ Logic shows the same shape, softer: `source_first` 0.65/0.96/1.00, `source_first
 4. **The fix deploys.** `source_first_auto` (a one-prompt compress-toward-source policy on
    arbitrary input) beats all three shipped systems, not just the hand-built note.
 
+### Lossy is worse than empty (the behavioral core)
+
+The information loss is near-tautological; the load-bearing result is *behavioral*. At the wall we
+swap the lossy note for a **blank** one (no source, no conclusion). With nothing to inherit, both
+base models abstain on every problem. The same models under `lossy` emit a confident wrong value
+(0.48 on llama, 0.75 on grok, much of it the exact inherited value). Neither recovers the truth, so
+the gap is pure behavior: keeping a stale conclusion converts a safe abstention into a confident
+error. The failure is disposition-contingent (a model tuned to abstain escapes it) and sharpest when
+the error is an externally planted note; on a model's own self-generated error the attractor
+attenuates. `bench_blank.py`, `bench_endogenous.py`.
+
+### The error cascades when memory feeds memory
+
+Agents loop: read memory, act, compress the result into the next memory. A single planted error
+under `lossy` then doesn't stay local. Running-ledger chain, planted error at hop 1, judge-free,
+24 chains (llama) / 16 (sonnet):
+
+| H (hops) | lossy blast, llama / sonnet | lossy reclaim | source_first reclaim |
+|---:|:--:|:--:|:--:|
+| 1 | 0.7 / 0.8 | ~0.15 | 1.00 |
+| 4 | 3.0 / 3.0 | ~0.04 | 0.75 / 0.69 |
+| 8 | **7.3 / 7.0** | **0.00** | **0.00** |
+
+The blast radius (wrong downstream hops) grows with the chain and the final correction never lands.
+A **no-error control** has blast 0.0 at every depth, so it is the dropped source, not the loop.
+`source_first` reclaim equals the fraction of chains whose full source still fits the budget: it
+holds near 1.0, then cliffs to the lossy floor once the accumulated source overflows (H=8 here, at
+the **same depth** on the 8B and the frontier reader: a budget horizon, not a capability one).
+`bench_cascade.py`.
+
+### The boundary, and how the fix fails (size, noise, silent truncation)
+
+`source_first` is not unconditional; two sweeps map its edge, and both are capability-invariant:
+
+- **Size.** Grow the source past the budget and it cannot all be kept; reclaim cliffs to 0.00 the
+  instant one item is dropped. The cliff tracks the *budget*, not problem size (N≈5 at B=300, N≈14
+  at B=600). `bench_sizesweep.py`.
+- **Noise.** Bury the few answer-determining items among plausible decoys and a positional note lets
+  them get crowded out; reclaim decays to the lossy floor while a relevance-aware note holds flat.
+  `bench_noisysweep.py`.
+- **Silent failure, and the fix for it.** Past its boundary `source_first` does not abstain; it
+  confidently sums the *partial* source (Opus: 96/96 silent mis-sums). A one-line **completeness
+  tag** (k of N items preserved) flips that to 94/96 flagged-or-abstained. The tag is itself
+  capability-gated: a weak 8B reader honors it only 6/96. `bench_completeness.py`.
+
+### Real conversational memory (MultiWOZ)
+
+The wall and fix are not an artifact of synthetic ledgers. On MultiWOZ (a real, fuzzy, multi-turn
+dialogue with a checkable slot value), `lossy` / `lossy_padded` / blank all sit at 0.00 while
+`source_first` recovers and lifts with capability (0.46 -> 0.68 -> 0.97 across llama / sonnet / opus).
+The silent-failure channel is starkest here: Opus caveats "unverified" in prose in *every* case and
+still emits the drifted time on its structured answer line *half* the time. `bench_multiwoz.py`,
+`bench_multiwoz_failmode.py`.
+
+### How big is the regime? (a first prevalence audit)
+
+`source_first` works on compact, checkable sources; how much real memory is that? We classify 100
+conversations from each of three corpora (general chat, tool-use, agentic). The absolute share is
+**not** identified (two LLM labelers disagree, kappa=0.15), so we report no point estimate. But the
+**ordering is robust** under both labelers and non-overlapping: compact-source content is far more
+prevalent in tool-use and agentic memory than in open chat (llama 0.78 / 0.84 / 0.99; grok 0.22 /
+0.57 / 0.61, for chat / tool / agentic). The high-stakes regime is the compact one. `bench_prevalence.py`.
+
 ## Run
 
 ```bash
@@ -217,8 +285,14 @@ python scripts/bench_claude.py --model claude-sonnet-4-6           # full board 
 python scripts/analyze_realworld.py "data/results/realworld_*arith*.jsonl"  # RR + bootstrap CIs
 python scripts/confab_audit.py "data/results/realworld_*.jsonl"             # invented-number count
 
+# every other paper experiment has its own bench in scripts/ (cascade, multiwoz, sizesweep,
+# noisysweep, completeness, prevalence, adversarial, blank, endogenous, ...); the new ones take
+# --probe for a cheap dry run + cost estimate, e.g.:
+python scripts/bench_cascade.py --probe        # memory-feeds-memory cascade
+python scripts/bench_prevalence.py --probe     # prevalence audit over 3 real corpora
+
 # reproduce every paper table + run the correct-by-construction validators (no API):
-python scripts/reproduce_tables.py     # regenerates tab:wall/logic/frontier, exits non-zero on any validator failure
+python scripts/reproduce_tables.py     # regenerates every table, exits non-zero on any validator failure
 ```
 
 Runs are checkpointed per `(seed, problem, policy)` under `data/results/`, so re-running
@@ -236,8 +310,12 @@ measured cost).
 ```
 src/reclaim/  problems.py (verifiable, planted error) · llm.py (OpenRouter + Anthropic + DryRun)
               · experiment.py (drift -> commit -> reclaim) · realworld.py (deployed-memory adapters)
+              · sizesweep.py (ledger generator for the boundary/cascade sweeps)
 scripts/      run_pilot.py · bench_realworld.py (deployed systems) · bench_claude.py (frontier
-              replay) · analyze_realworld.py (bootstrap CIs) · confab_audit.py (confabulation)
+              replay) · bench_cascade.py · bench_multiwoz.py · bench_sizesweep.py · bench_noisysweep.py
+              · bench_completeness.py · bench_prevalence.py · bench_adversarial.py (the boundary,
+              cascade, dialogue, and prevalence experiments) · analyze_realworld.py (bootstrap CIs)
+              · reproduce_tables.py (every table, no API)
 tests/        test_pipeline.py (free, can-fail)
 ```
 
