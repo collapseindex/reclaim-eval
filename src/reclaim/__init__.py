@@ -20,13 +20,17 @@ from .experiment import (
     run_problem, run_problem_crosssession, run_problem_distance,
 )
 from .llm import OpenRouterLLM, AnthropicLLM, DryRunLLM, parse_answer
+from .probe import (
+    classify_note, probe_policy, compare_policies, Verdict, ProbeReport,
+)
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "reclaim_rate", "memory_note", "score", "Problem", "PROBLEMS", "PROBLEMS_LOGIC",
     "FACTS", "SYSTEM", "reclaim_cross", "OpenRouterLLM", "AnthropicLLM", "DryRunLLM",
     "parse_answer", "run_problem", "run_problem_crosssession", "run_problem_distance",
+    "classify_note", "probe_policy", "compare_policies", "Verdict", "ProbeReport",
 ]
 
 

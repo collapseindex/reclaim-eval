@@ -50,6 +50,47 @@ the recomputable source in your note and it stays high; drop it for the conclusi
 the same budget. Pass `PROBLEMS_LOGIC` for the non-arithmetic family. Every experiment in the paper
 is a standalone script under `scripts/` (see [Run](#run)).
 
+## The probe: a smoke alarm for agent memory
+
+One command, no API key, shows the whole mechanism:
+
+```bash
+python -m reclaim.probe
+```
+
+```
+  policy            RR  regime                 silent?
+  ----------------------------------------------------
+  source_first    0.94  correctable                 no    <- the fix: source survives
+  lossy           0.00  uncorrectable_silent       YES    <- the wall: WORSE than empty
+  lossy_padded    0.03  uncorrectable_silent       YES       (same content, more text)
+  blank           0.09  uncorrectable_loud          no    <- empty: fails, but abstains
+```
+
+(That `RR` column is the free `DryRunLLM` fake; the `regime`/`silent?` verdict is exact either way.
+On a real model the contrast sharpens to the paper's `1.00` vs `0.00` (see [Findings](#findings)).)
+
+The probe answers a smoke-alarm question, not "is this memory good" but "has it gone
+**uncorrectable**, and will it fail loudly or **silently**". The silent case is the one that hurts: the
+source needed to recompute is gone, but a stale wrong value is still carried, so the model emits it as
+a confident answer with nothing to check it against. That is worse than an empty memory, and you can
+catch it **at write time, with no model call**, because it is a property of the note:
+
+```python
+from reclaim import classify_note
+
+v = classify_note(
+    note="(Memory of an earlier session.) You concluded the total was $55.",
+    source="7 notebooks at $4, 9 pens at $2",   # what the memory was supposed to keep
+    conclusion="$55",                            # the committed value
+)
+print(v.regime, v.silent_failure)   # uncorrectable_silent True
+```
+
+`classify_note` is the static witness (exact, model-free, runs in your memory-write path);
+`compare_policies(llm=...)` and `probe_policy(compress, llm=...)` add the behavioral confirm (free
+`DryRunLLM`, or a real model where the silent row also shows the emit-vs-abstain split).
+
 ## Why this matters (if you ship agentic memory)
 
 If your agent compresses history toward conclusions and drops the working (which the three
@@ -343,15 +384,39 @@ measured cost).
 
 ```
 src/reclaim/  problems.py (verifiable, planted error) · llm.py (OpenRouter + Anthropic + DryRun)
-              · experiment.py (drift -> commit -> reclaim) · realworld.py (deployed-memory adapters)
+              · experiment.py (drift -> commit -> reclaim) · probe.py (the write-time correctability
+              probe / witness) · realworld.py (deployed-memory adapters)
               · sizesweep.py (ledger generator for the boundary/cascade sweeps)
 scripts/      run_pilot.py · bench_realworld.py (deployed systems) · bench_claude.py (frontier
               replay) · bench_cascade.py · bench_multiwoz.py · bench_sizesweep.py · bench_noisysweep.py
               · bench_completeness.py · bench_prevalence.py · bench_adversarial.py (the boundary,
               cascade, dialogue, and prevalence experiments) · analyze_realworld.py (bootstrap CIs)
               · reproduce_tables.py (every table, no API)
-tests/        test_pipeline.py (free, can-fail)
+tests/        test_pipeline.py · test_probe.py (free, can-fail)
 ```
+
+## Roadmap
+
+The published paper and this harness (the benchmark, the `source_first` policy, and the write-time
+`probe`) are the foundation. The following build out the probe into something you run in production,
+and are planned after the paper is on arXiv. None of it is shipped yet; listed here so the direction
+is on the record, not implied as done.
+
+- **CI gate.** A GitHub Action that runs the probe on every change and fails the build when a
+  memory-writer edit pushes a policy into `uncorrectable_silent` or drops its Reclaim Rate below a
+  threshold. Correctability as a regression test, a new axis next to accuracy.
+- **Completeness header.** Standardize the one-line `k of N source items preserved` tag (the
+  silent-truncation remedy) as a small spec, and land it upstream in the memory frameworks
+  (LangChain, mem0) so a memory note carries its own completeness like a checksum.
+- **Reclaim Rate as a reported metric, and a leaderboard.** Make `RR` a number memory systems report,
+  with a public "is your agent memory correctable" board, so the standard is a referee, not just a library.
+- **Runtime guard.** A drop-in on the memory-write path that rewrites compact-source memories
+  `source_first` + completeness-tagged, and, where the source is diffuse and the fix has no leverage,
+  flags the memory as uncorrectable-by-design rather than silently shipping it. Make silent
+  uncorrectability loud.
+- **One engine, N probes.** The `probe` here satisfies a general witness contract (score +
+  silent-failure flag + regime); memory is the first probe of a broader "safe AI can't fail silently"
+  family.
 
 ## License
 

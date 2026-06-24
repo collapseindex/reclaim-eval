@@ -38,8 +38,16 @@ except ImportError:
 from reclaim.problems import TASKS
 from reclaim.experiment import (DEPTHS, SYSTEM, build_trajectory, reclaim_cross,
                                 score, memory_note, _logged_answer)
-from reclaim.llm import OpenRouterLLM
+from reclaim.llm import OpenRouterLLM, AnthropicLLM
 from reclaim.realworld import BUILDERS
+
+
+def _answerer(model: str, temperature: float):
+    """Route a claude-* answering model to the Anthropic API (end-to-end frontier writer+reader);
+    everything else stays on OpenRouter, as before."""
+    if model.lower().startswith("claude"):
+        return AnthropicLLM(model=model, temperature=temperature)
+    return OpenRouterLLM(model=model, temperature=temperature)
 
 ENVELOPE = "(Memory of an earlier session.) "
 ARMS = ("generic", "directed")
@@ -163,7 +171,7 @@ def main() -> int:
             if not need:
                 continue
             if llm is None:
-                llm = OpenRouterLLM(model=args.model, temperature=args.temp)
+                llm = _answerer(args.model, args.temp)
             transcript = build_trajectory(llm, prob)[max(DEPTHS)]
             # numbers that actually appeared in session 1; anything a memory states that is
             # NOT here was invented during compression (objective confabulation signal).
