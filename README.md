@@ -426,5 +426,14 @@ safe for companies to depend on.
 
 ## Citation
 
-*Reclaim Evaluation: A Lossy Memory Is Worse Than an Empty One.*
-Alex Kwon, 2026. Paper in preparation; cite this repository in the meantime.
+Alex Kwon. *Reclaim Evaluation: A Lossy Memory Is Worse Than an Empty One.* arXiv:2606.25449, 2026. <https://arxiv.org/abs/2606.25449>
+
+```bibtex
+@article{kwon2026reclaim,
+  title   = {Reclaim Evaluation: A Lossy Memory Is Worse Than an Empty One},
+  author  = {Kwon, Alex},
+  journal = {arXiv preprint arXiv:2606.25449},
+  year    = {2026},
+  url     = {https://arxiv.org/abs/2606.25449}
+}
+```
