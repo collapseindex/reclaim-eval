@@ -26,7 +26,11 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
+from dataclasses import dataclass
 from pathlib import Path
+
+import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
@@ -67,9 +71,53 @@ ALIASES = {
     "sonnet": "claude-sonnet-4-6",
     "haiku": "claude-haiku-4-5-20251001",
     "opus": "claude-opus-4-8",
+    # frontier flagships for the abstain-vs-fabricate sweep
+    "gpt5.4-mini": "gpt-5.4-mini",   # OpenAI direct API
+    "gpt5.4": "gpt-5.4",             # OpenAI direct API
+    "deepseek": "deepseek/deepseek-chat",   # standard chat (v4-pro returns empty content via OpenRouter)
+    "glm": "z-ai/glm-4.6",
+    "gemini": "google/gemini-2.5-flash",
+    "grok": "x-ai/grok-4.3",
+    "kimi": "moonshotai/kimi-k2",
+    "qwen235": "qwen/qwen3-235b-a22b-2507",
+    "mistral": "mistralai/mistral-medium-3",
 }
 
 POLICIES = ["blank", "lossy", "source_first", "graph"]
+
+
+@dataclass
+class OpenAILLM:
+    """OpenAI direct (gpt-5.x reasoning models): max_completion_tokens + reasoning_effort, no temperature."""
+
+    model: str
+    reasoning_effort: str = "low"
+    max_tokens: int = 2000
+    timeout: int = 120
+
+    def __post_init__(self):
+        self.key = os.environ.get("OPENAI_API_KEY")
+        if not self.key:
+            raise RuntimeError("OPENAI_API_KEY not set (.env)")
+
+    def chat(self, messages):
+        body = {"model": self.model, "messages": messages,
+                "max_completion_tokens": max(self.max_tokens, 2000),
+                "reasoning_effort": self.reasoning_effort}
+        for attempt in range(6):
+            try:
+                r = requests.post("https://api.openai.com/v1/chat/completions", json=body,
+                                  timeout=self.timeout, headers={"Authorization": f"Bearer {self.key}"})
+                if r.status_code == 200:
+                    ch = r.json().get("choices") or []
+                    if ch:
+                        return (ch[0].get("message") or {}).get("content") or ""
+                elif r.status_code not in (429, 500, 502, 503):
+                    raise RuntimeError(f"OpenAI {r.status_code}: {r.text[:200]}")
+            except requests.RequestException:
+                pass
+            time.sleep(2 * (attempt + 1))
+        raise RuntimeError("OpenAI failed after retries")
 
 
 def make_client(name):
@@ -78,6 +126,8 @@ def make_client(name):
     model = ALIASES.get(name, name)
     if model.startswith("claude"):
         return AnthropicLLM(model=model)
+    if model.startswith("gpt-5"):       # OpenAI direct (reasoning models), not OpenRouter's 'openai/...'
+        return OpenAILLM(model=model)
     return OpenRouterLLM(model=model)
 
 
@@ -135,27 +185,30 @@ def main():
 
     rows = {}
     for m in models:
-        llm = make_client(m)
-        bd = {}
-        for pol in ("blank", "lossy", "source_first"):
-            bd[pol] = reclaim_breakdown(llm, lambda p, g, _pol=pol: memory_note(p, g, _pol),
-                                        problems=problems, integrity=args.integrity)
-        bd["graph"] = reclaim_breakdown(llm, lambda p, g: graph_note(p, g, facts),
-                                        problems=problems, integrity=args.integrity)
-        rows[m] = bd
-        print(f"{m:12} " + " ".join(f"{bd[p]['recovered']:>13.2f}" for p in POLICIES))
+        try:
+            llm = make_client(m)
+            bd = {}
+            for pol in ("blank", "lossy", "source_first"):
+                bd[pol] = reclaim_breakdown(llm, lambda p, g, _pol=pol: memory_note(p, g, _pol),
+                                            problems=problems, integrity=args.integrity)
+            bd["graph"] = reclaim_breakdown(llm, lambda p, g: graph_note(p, g, facts),
+                                            problems=problems, integrity=args.integrity)
+            rows[m] = bd
+            print(f"{m:12} " + " ".join(f"{bd[p]['recovered']:>13.2f}" for p in POLICIES))
+        except Exception as e:                                   # one bad model must not kill the sweep
+            print(f"{m:12}  SKIPPED -- {str(e)[:64]}")
 
     print("\n=== FAILURE MODE on the no-recovery policies (commit-wrong | abstain) ===")
     print("  recovery ceilings out at 0 for blank and lossy; the signal is HOW each fails.")
     print(f"{'model':12} {'lossy:c-wrong':>14} {'abstain':>8}  {'blank:c-wrong':>14} {'abstain':>8}")
-    for m in models:
+    for m in [m for m in models if m in rows]:
         L, B = rows[m]["lossy"], rows[m]["blank"]
         print(f"{m:12} {L['committed_wrong']:>14.2f} {L['abstained']:>8.2f}  "
               f"{B['committed_wrong']:>14.2f} {B['abstained']:>8.2f}")
 
     print("\n=== KEY CONTRAST: confident-wrong gap = commit_wrong(lossy) - commit_wrong(blank) ===")
     print(f"{'model':12} {'c-wrong gap':>12}")
-    for m in models:
+    for m in [m for m in models if m in rows]:
         gap = rows[m]["lossy"]["committed_wrong"] - rows[m]["blank"]["committed_wrong"]
         print(f"{m:12} {gap:>12.2f}")
 
