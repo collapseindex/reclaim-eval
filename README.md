@@ -96,9 +96,12 @@ print(v.regime, v.silent_failure)   # uncorrectable_silent True
 If your agent compresses history toward conclusions and drops the working (which the three
 most-shipped memory primitives all do), a single early error doesn't stay local. It becomes:
 
-- **Confidently wrong, never flagged.** A source-less model doesn't abstain; it emits the stale
-  value as the answer. A *lossy memory is worse than an empty one*: the empty-memory model
-  abstains, the lossy-memory model asserts. Adding a memory layer can strictly degrade safety.
+- **Confidently wrong, never flagged.** A *lossy memory is never better than an empty one, and
+  strictly worse on a model disposed to answer*: where the empty-memory model abstains, the
+  lossy-memory one asserts the stale value. It splits the field by disposition, the models that
+  answer without the source (deepseek, grok, qwen, an 8B llama) emit it; the frontier OpenAI and
+  Anthropic models abstain and escape it. For the models that answer, adding a memory layer
+  strictly degrades safety.
 - **Silently failing.** The wrong value lands in the structured `ANSWER` field; the hedge, if
   any, lands in the prose channel your parser ignores. On MultiWOZ, Opus caveats "unverified" in
   *every single case* and still emits the drifted time on its answer line *half the time*. A
@@ -267,16 +270,18 @@ Logic shows the same shape, softer: `source_first` 0.65/0.96/1.00, `source_first
 4. **The fix deploys.** `source_first_auto` (a one-prompt compress-toward-source policy on
    arbitrary input) beats all three shipped systems, not just the hand-built note.
 
-### Lossy is worse than empty (the behavioral core)
+### Lossy is never better than empty, strictly worse if the model answers (the behavioral core)
 
 The information loss is near-tautological; the load-bearing result is *behavioral*. At the wall we
-swap the lossy note for a **blank** one (no source, no conclusion). With nothing to inherit, both
-base models abstain on every problem. The same models under `lossy` emit a confident wrong value
-(0.48 on llama, 0.75 on grok, much of it the exact inherited value). Neither recovers the truth, so
-the gap is pure behavior: keeping a stale conclusion converts a safe abstention into a confident
-error. The failure is disposition-contingent (a model tuned to abstain escapes it) and sharpest when
-the error is an externally planted note; on a model's own self-generated error the attractor
-attenuates. `bench_blank.py`, `bench_endogenous.py`.
+swap the lossy note for a **blank** one (no source, no conclusion). With nothing to inherit, models
+abstain. The same models under `lossy` emit a confident wrong value (0.17 on llama, 0.57 on grok,
+much of it the exact inherited value), converting a safe abstention into a confident error. Across
+eight models from four vendors no model reverses (a lossy memory is never better than an empty one),
+but it is strictly *worse* only where the model is disposed to answer: deepseek (+0.83), grok
+(+0.57), qwen (+0.39), and the 8B llama (+0.17) emit, while the four frontier OpenAI and Anthropic
+models (gpt-4o-mini, gpt-5.4, sonnet, opus) abstain under both and show no effect. The failure is
+sharpest on an externally planted note; on a model's own self-generated error llama abstains
+entirely (re-emits 0.00). `bench_blank.py`, `bench_endogenous.py`.
 
 ### The error cascades when memory feeds memory
 

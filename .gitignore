@@ -8,3 +8,16 @@ paper_acl/
 
 # private working notes (local only)
 DEPLOYMENT.md
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.blg
+*.out
+*.fls
+*.fdb_latexmk
+*.ptc
+*.synctex.gz
+
+# arXiv source package (reproducible from paper_tmlr/)
+*.zip

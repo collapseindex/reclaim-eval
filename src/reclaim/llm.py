@@ -173,6 +173,114 @@ class AnthropicLLM:
 
 
 @dataclass
+class OpenAILLM:
+    """OpenAI direct client for gpt-5.x reasoning models: max_completion_tokens + reasoning_effort,
+    NO temperature (the reasoning models reject it). The answer is in choices[0].message.content;
+    the hidden reasoning is billed as completion tokens, so we accumulate usage even on an empty
+    completion (a reasoning-token blowup that returns no content must still count against budget,
+    and surface its finish_reason rather than look free)."""
+    model: str = "gpt-5.4"
+    reasoning_effort: str = "low"
+    max_tokens: int = 2000
+    timeout: int = 180
+
+    def __post_init__(self):
+        self.key = os.environ.get("OPENAI_API_KEY")
+        if not self.key:
+            raise RuntimeError("OPENAI_API_KEY not set (.env)")
+        self.calls = 0
+        self.prompt_tokens = 0
+        self.completion_tokens = 0   # includes reasoning tokens
+
+    def chat(self, messages):
+        body = {"model": self.model, "messages": messages,
+                "max_completion_tokens": max(self.max_tokens, 2000),
+                "reasoning_effort": self.reasoning_effort}
+        detail = "no attempt"
+        for attempt in range(6):
+            try:
+                r = requests.post("https://api.openai.com/v1/chat/completions", json=body,
+                                  timeout=self.timeout,
+                                  headers={"Authorization": f"Bearer {self.key}"})
+                if r.status_code == 200:
+                    data = r.json()
+                    ch = data.get("choices") or []
+                    content = (ch[0].get("message") or {}).get("content") if ch else None
+                    usage = data.get("usage") or {}
+                    self.prompt_tokens += usage.get("prompt_tokens", 0) or 0
+                    self.completion_tokens += usage.get("completion_tokens", 0) or 0
+                    if content:
+                        self.calls += 1
+                        return content
+                    fr = ch[0].get("finish_reason") if ch else "?"
+                    detail = f"200 no content (finish={fr}); raise max_completion_tokens if 'length'"
+                elif r.status_code in (429, 500, 502, 503):
+                    detail = f"http {r.status_code}"
+                else:
+                    raise RuntimeError(f"OpenAI {r.status_code}: {r.text[:200]}")
+            except requests.RequestException as e:
+                detail = f"{type(e).__name__}: {str(e)[:120]}"
+            time.sleep(2 * (attempt + 1))
+        raise RuntimeError(f"OpenAI failed after retries ({detail})")
+
+
+@dataclass
+class XAILLM:
+    """Official xAI API client (OpenAI-compatible) for grok-4.x. grok-4 is a reasoning model, so we
+    run it deterministic (temperature=None -> not sent), matching how the other frontier readers are
+    treated, and drop temperature on a 400 if the endpoint rejects it. Reasoning tokens count as
+    completion tokens and are tracked for cost; usage is accumulated even on empty content."""
+    model: str = "grok-4.3"
+    temperature: object = None           # None -> deterministic, do not send temperature
+    max_tokens: int = 2000
+    timeout: int = 180
+
+    def __post_init__(self):
+        self.key = os.environ.get("XAI_API_KEY")
+        if not self.key:
+            raise RuntimeError("XAI_API_KEY not set (.env)")
+        self.calls = 0
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
+        self._send_temp = self.temperature is not None
+
+    def chat(self, messages):
+        body = {"model": self.model, "messages": messages, "max_tokens": self.max_tokens}
+        if self._send_temp:
+            body["temperature"] = self.temperature
+        detail = "no attempt"
+        for attempt in range(6):
+            try:
+                r = requests.post("https://api.x.ai/v1/chat/completions", json=body,
+                                  timeout=self.timeout,
+                                  headers={"Authorization": f"Bearer {self.key}"})
+                if r.status_code == 200:
+                    data = r.json()
+                    ch = data.get("choices") or []
+                    content = (ch[0].get("message") or {}).get("content") if ch else None
+                    usage = data.get("usage") or {}
+                    self.prompt_tokens += usage.get("prompt_tokens", 0) or 0
+                    self.completion_tokens += usage.get("completion_tokens", 0) or 0
+                    if content:
+                        self.calls += 1
+                        return content
+                    fr = ch[0].get("finish_reason") if ch else "?"
+                    detail = f"200 no content (finish={fr})"
+                elif r.status_code == 400 and self._send_temp and "temperature" in r.text.lower():
+                    self._send_temp = False            # endpoint rejects temperature: drop and retry
+                    body.pop("temperature", None)
+                    continue
+                elif r.status_code in (429, 500, 502, 503):
+                    detail = f"http {r.status_code}"
+                else:
+                    raise RuntimeError(f"xAI {r.status_code}: {r.text[:200]}")
+            except requests.RequestException as e:
+                detail = f"{type(e).__name__}: {str(e)[:120]}"
+            time.sleep(2 * (attempt + 1))
+        raise RuntimeError(f"xAI failed after retries ({detail})")
+
+
+@dataclass
 class DryRunLLM:
     """A free fake that drifts (uses the planted wrong value) and reclaims with a
     probability that FALLS with drift depth and is HIGHER for the directed arm, so a

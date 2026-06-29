@@ -1,86 +1,85 @@
-# Note: answer-parser fix and its effect on the blank-vs-lossy claim
+# Note: answer-parser fix and the v2 correction
 
-**Date:** 2026-06-28
-**Scope:** one behavioral table (blank-vs-lossy confident-wrong emission). The conceptual core and
-the recovery-rate results are unaffected. This is a corrected-numbers fix, not a retraction.
+**Dates:** found 2026-06-28, corrected and re-submitted (arXiv v2) 2026-06-29.
+**Summary:** an answer-parser bug inflated the *confident-wrong emission* tables. Re-scored under strict
+scoring across the reported model set; the source-first and recovery-rate results are unchanged. This is
+a corrected-numbers (and tightened-framing) fix, not a retraction.
 
 ## The bug
 
-`reclaim/llm.py` turned a model reply into a discrete answer with two parsers that could read a
+`src/reclaim/llm.py` turned a model reply into a discrete answer with two parsers that could read a
 **non-answer as an answer**:
 
-1. `parse_answer` (numeric): if no `ANSWER: <number>` line was present, it fell back to scraping
-   **any** number out of the reply text. An abstention or a clarifying question that happened to
-   mention a figure ("I can't recompute, though the earlier total was 55"; "what were the other
-   items that made up the $55?") was parsed as a confident numeric commit.
-2. `parse_answer_word` (text): it returned the first word after `ANSWER:` with no validation, so
+1. `parse_answer` (numeric): with no `ANSWER: <number>` line it fell back to scraping **any** number
+   out of the reply. An abstention or clarifying question that mentioned a figure ("I can't recompute,
+   though the earlier total was 55"; "what were the other items that made up the $55?") was scored as a
+   confident numeric commit.
+2. `parse_answer_word` (text): returned the first word after `ANSWER:` with no validation, so
    `ANSWER: Unable to determine` was scored as the committed answer "Unable".
 
-The bug was found while building M-NULL (which vendored this parser) and traced back here.
+Found while building M-NULL (which vendored this parser) and traced back here.
 
-## Why it matters for exactly one result
+## Blast radius
 
-The bug is a **no-op wherever the metric is recovered-vs-not** (a phantom commit and a real
-abstention both score "not correct"). It only does damage where a failure is **decomposed** into
-*abstain* vs *confident-wrong*. In reclaim that is one place: `scripts/bench_blank.py`, the
-"a lossy memory is worse than an empty one" table, whose `classify()` called the bare parser.
+The bug is a **no-op wherever the metric is recovered-vs-not** (a phantom commit and a real abstention
+both score "not correct"), so every recovery-rate result is inert. It does damage only where a failure
+is **decomposed** into *abstain* vs *confident-wrong*. That cluster, and only that cluster, was
+re-scored:
 
-On a **lossy** note the stale value is present in the prompt, so an abstention-in-prose gave the
-fallback a number to grab, manufacturing a phantom `emit`/`attractor`. On a **blank** note there is
-no stale value, so blank was not inflated. Net effect: the lossy-minus-blank emit gap was inflated,
-worst on weak/abstaining models.
+- `tab:disposition` (worse-than-empty across models), `tab:blank`
+- `tab:failmode` (recov/inherit/novel/abstain)
+- `tab:corrtax` (Opus correct-value cell)
+- correction-robustness capitulation cells (the sycophancy paragraph)
+- the endogenous self-error numbers
 
-## Evidence (re-scored on identical replies, 8 canonical problems x 5 seeds, temp 0.7)
+**Verified clean, not changed:** `tab:attractor` (MultiWOZ) already used a strict ANSWER-line parser
+(`bench_multiwoz_failmode.asserted_time`, no fallback); the static probe (`probe.classify_note`) reads
+the note, not a model; the probe's behavioral rates already had a hedge backstop. All recovery tables
+(`tab:wall`, `tab:logic`, `tab:frontier`, `tab:generic`, `tab:adversarial`, cascade) are inert.
 
-Each reply scored three ways: `old` (shipped parser), `strict` (fallback removed, markdown-tolerant),
-`hedge` (strict + a parser-independent hedge backstop = gold standard).
+## Scoring decision: strict, not a hedge wordlist
 
-```
-llama                 lossy_emit  lossy_attr  blank_emit   GAP(l-b)
-  old (published)        0.42        0.25        0.00        +0.42
-  strict                 0.10        0.05        0.00        +0.10
-  hedge (gold)           0.05        0.03        0.00        +0.05
-  -> 15/40 lossy "emits" were phantom (clarifying questions / abstentions)
+We score **the value the model commits on its `ANSWER` line** and nothing else (`parse_answer` requires
+the value adjacent to `ANSWER:`, markdown/`$`/quotes tolerated; `parse_answer_word` validates the token
+against the problem's closed candidate set `options`). An early version added a "hedge backstop" (treat
+a reply containing "can't / unable / ..." as an abstention even with a committed value); we **removed**
+it. A hedge wordlist is itself the brittle-heuristic class this fix is about (it catches some hedges and
+misses others), and it contradicts the paper's stated rule ("we score the returned value, not whether it
+is hedged", because a downstream system sees only the value). Strict scoring is both the robust validator
+and faithful to that rule.
 
-deepseek-chat         lossy_emit  lossy_attr  blank_emit   GAP(l-b)
-  old (published)        0.93        0.50        0.00        +0.93
-  strict                 0.78        0.40        0.00        +0.78
-  hedge (gold)           0.72        0.35        0.00        +0.72
-  -> 8/40 phantom; the effect is overwhelmingly real
-```
+## What changed in the numbers (representative)
 
-## What this means for the paper
+Strict re-run, `g=0.1`, directed, `n=96`/cell (disposition); old = the buggy published value.
 
-- **The claim survives.** "A lossy memory is worse than an empty one" holds robustly on models that
-  genuinely trust the stale value (deepseek: +0.72 confident-wrong, 0.35 the exact stale value, vs
-  0.00 on blank, under the strictest scoring).
-- **The magnitude and universality were overstated.** On abstainer models the gap was mostly a
-  parser artifact (llama +0.42 -> +0.05). Any "all models, by this much" framing must tighten to a
-  **per-model** statement: stale-trust is a model property, not a universal.
-- **Unaffected:**
-  - The static witness (`probe.classify_note`) reads the note, never a model, so its
-    correctable / silent / loud verdict does not depend on any parser.
-  - The behavioral abstain detection in `probe._is_abstain` already had the hedge backstop, so the
-    probe's reported rates were not subject to this bug.
-  - All recovery-rate results (directed > generic, the cross-session wall, the anchoring window)
-    live at the recovered-vs-not level where the bug is inert.
+| cell | old | corrected |
+|---|---|---|
+| disposition: deepseek / grok / qwen / llama (Delta) | +0.83 / +0.75 / +0.12 / +0.48 | +0.83 / +0.57 / +0.39 / +0.17 |
+| disposition: opus / sonnet / gpt-4o-mini / gpt-5.4 | 0.99 / 0.40 / 0.29 / (new) | 0.00 / 0.00 / 0.00 / 0.00 |
+| tab:blank lossy emit (llama / grok) | 0.48 / 0.75 | 0.17 / 0.57 |
+| tab:failmode arith grok (inherit) | 90% | 57% |
+| tab:corrtax Opus correct-value (returns true) | 0.69 | 0.22 |
+| sycophancy capitulation (Sonnet / Opus) | 0.74 / 1.00 | 0.09 / 0.03 |
+| endogenous self-error re-emit | 0.13 | 0.00 |
 
-## The fix (applied here)
+## What it means for the paper
 
-- `llm.py::parse_answer`: removed the stray-number fallback; require the value adjacent to
-  `ANSWER:` (markdown/`$`/quotes tolerated). No `ANSWER: <number>` now means abstained.
-- `llm.py::parse_answer_word`: validates the parsed token against the problem's **closed candidate
-  set** (`options`); an unrecognised word is an abstention, never a phantom commit. Falls back to a
-  filler blocklist only for problems with no declared options.
-- `problems.py` / `problems_gen.py`: added the `options` answer-space to every text problem
-  (canonical and generated); generators still pass `validate_logic` / `validate_assign`.
-- `experiment.py`: `score` / `_logged_answer` thread `options` to the text parser.
-- `scripts/bench_blank.py::classify`: added the parser-independent hedge backstop (mirrors
-  `probe._is_abstain`) as a second guard.
+- **The claim survives, reframed.** "A lossy memory is never better than an empty one" holds (no model
+  reverses); it is **strictly worse only on models disposed to answer** (deepseek, grok, qwen, llama),
+  and **absent** on the four frontier OpenAI/Anthropic models, which abstain (the safe behavior). The
+  split is by **disposition, not capability** (a current frontier model, grok, shows the effect strongly;
+  a small one, gpt-4o-mini, escapes it).
+- **The flashy sub-claims were artifacts:** Opus "capitulates 1.00 / defends the stale value on 31%" and
+  "frontier models are *more* susceptible" were the parser scraping hedged prose; corrected, the frontier
+  readers abstain.
 
-## To update the venue submission
+## The fix (applied)
 
-Re-run the corrected `bench_blank.py` across the reported model set, regenerate the one
-blank-vs-lossy table from the `hedge` scoring, and reframe the result per-model (stale-trust varies
-by model; it is strong on the models that genuinely commit the stale value and weak on abstainers).
-The headline ("worse than empty", silent uncorrectability) and every other result stand as written.
+- `llm.py::parse_answer`: dropped the stray-number fallback; markdown/`$`-tolerant; no adjacent value =>
+  abstained. `parse_answer_word`: validates against the closed `options` set.
+- `problems.py` / `problems_gen.py`: added the `options` answer-space to every text problem.
+- `experiment.py`: `score` / `_logged_answer` thread `options`.
+- `scripts/bench_blank.py::classify`: strict scoring (the hedge backstop was added then **removed**).
+- Added OpenAI (`gpt-5.4`) and official xAI (`grok-4.3`) clients for the 8-model disposition sweep.
+- Corrected harness runs: `scripts/run_sweep.py` (disposition), `scripts/logic_failmode.py`,
+  and re-runs of `bench_corrtax` / `bench_confidentwrong` / `bench_endogenous`.
