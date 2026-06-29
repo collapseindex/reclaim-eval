@@ -21,3 +21,7 @@ DEPLOYMENT.md
 
 # arXiv source package (reproducible from paper_tmlr/)
 *.zip
+
+# paper sources live on arXiv, not in the harness repo
+paper_tmlr/
+paper_emnlp/
