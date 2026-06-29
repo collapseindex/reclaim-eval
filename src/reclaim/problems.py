@@ -24,6 +24,9 @@ class Problem:
     drift: object          # the answer you get if you use the wrong premise
     ask: str = "the total before tax"   # what the reclaim asks the model to give
     kind: str = "number"   # "number" (numeric tolerance) or "text" (single-word match)
+    options: tuple = ()    # text tasks only: the CLOSED set of valid answer tokens (this
+                           # problem's own entities). Validates a parsed answer against the
+                           # known answer space instead of guessing what filler looks like.
 
 
 PROBLEMS: list[Problem] = [
@@ -110,48 +113,56 @@ PROBLEMS_LOGIC: list[Problem] = [
             "designer, or auditor. Ben is not the manager. Cleo is the auditor. Who is "
             "the manager?",
             "a colleague noted that Ben is the manager", "Ben's role",
-            correct="Ana", drift="Ben", ask="the manager", kind="text"),
+            correct="Ana", drift="Ben", ask="the manager", kind="text",
+            options=("Ana", "Ben", "Cleo")),
     Problem("seating",
             "Four friends sit in a row in positions 1 to 4, left to right: Dee, Eve, "
             "Fia, Gus. Dee is at position 1. Eve is immediately to the right of Dee. Gus "
             "is at position 4. Who is at position 3?",
             "a colleague says Eve is at position 3", "Eve's position",
-            correct="Fia", drift="Eve", ask="the person in position 3", kind="text"),
+            correct="Fia", drift="Eve", ask="the person in position 3", kind="text",
+            options=("Dee", "Eve", "Fia", "Gus")),
     Problem("race",
             "Five runners finished a race: Hal, Ira, Jo, Kit, and Lee. Hal finished "
             "ahead of Ira. Ira finished ahead of Jo. Jo finished ahead of Kit. Kit "
             "finished ahead of Lee. Who finished last?",
             "a colleague says Kit finished behind Lee", "the Kit and Lee ordering",
-            correct="Lee", drift="Kit", ask="the runner who finished last", kind="text"),
+            correct="Lee", drift="Kit", ask="the runner who finished last", kind="text",
+            options=("Hal", "Ira", "Jo", "Kit", "Lee")),
     Problem("ages",
             "Three siblings are Mae, Ned, and Ola. Mae is older than Ned. Ola is younger "
             "than Ned. Who is the youngest?",
             "a colleague says Ned is younger than Ola", "the Ned and Ola age order",
-            correct="Ola", drift="Ned", ask="the youngest sibling", kind="text"),
+            correct="Ola", drift="Ned", ask="the youngest sibling", kind="text",
+            options=("Mae", "Ned", "Ola")),
     Problem("pets",
             "Pam, Quincy, and Rosa each own exactly one pet: a cat, a dog, or a fish. "
             "Pam owns the dog. Quincy does not own the fish. Who owns the cat?",
             "a colleague says Quincy owns the fish", "Quincy's pet",
-            correct="Quincy", drift="Rosa", ask="the cat's owner", kind="text"),
+            correct="Quincy", drift="Rosa", ask="the cat's owner", kind="text",
+            options=("Pam", "Quincy", "Rosa")),
     Problem("days",
             "Three meetings are each on a different day, Monday, Tuesday, or Wednesday: "
             "the budget meeting, the design meeting, and the review meeting. The budget "
             "meeting is on Monday. The design meeting is not on Wednesday. Which day is "
             "the review meeting?",
             "a colleague says the design meeting is on Wednesday", "the design meeting's day",
-            correct="Wednesday", drift="Tuesday", ask="the review meeting's day", kind="text"),
+            correct="Wednesday", drift="Tuesday", ask="the review meeting's day", kind="text",
+            options=("Monday", "Tuesday", "Wednesday")),
     Problem("height",
             "Four players are ranked by height: Sam, Tom, Uma, and Val. Sam is taller "
             "than Tom. Tom is taller than Uma. Uma is taller than Val. Who is the second "
             "tallest?",
             "a colleague says Uma is taller than Tom", "the Tom and Uma height order",
-            correct="Tom", drift="Uma", ask="the second-tallest player", kind="text"),
+            correct="Tom", drift="Uma", ask="the second-tallest player", kind="text",
+            options=("Sam", "Tom", "Uma", "Val")),
     Problem("houses",
             "Three houses in a row are painted red, blue, and green, one colour each. "
             "The first house is red. The blue house is not the middle one. What colour "
             "is the third house?",
             "a colleague says the blue house is the middle one", "the blue house's position",
-            correct="blue", drift="green", ask="the third house's colour", kind="text"),
+            correct="blue", drift="green", ask="the third house's colour", kind="text",
+            options=("red", "blue", "green")),
 ]
 
 FACTS_LOGIC: dict[str, str] = {

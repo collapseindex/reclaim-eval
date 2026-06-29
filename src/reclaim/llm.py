@@ -13,13 +13,22 @@ import requests
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
+# Optional markdown / quote / bracket noise a model may wrap the answer in
+# ("ANSWER: **167**", "ANSWER: `Jo`"). Skipped between the colon and the value so a genuine
+# commit that happens to be emphasised is not misread as an abstention.
+_WRAP = r"[*_`'\"(\[]*\s*"
+
+
 def parse_answer(text: str):
-    """Pull the last 'ANSWER: <number>' (or a trailing number) out of a reply."""
+    """The number on the last 'ANSWER:' line, required to sit immediately after the marker
+    (modulo markdown/$/whitespace). No adjacent number means the model did NOT commit a numeric
+    answer -- return None rather than scrape a stray number out of refusal prose. The old loose
+    fallback (grab any trailing number) did exactly that: it turned an abstention like "I can't
+    recompute, though the earlier figure was 55" into a phantom confident-wrong commit, which
+    inflated the blank-vs-lossy emit gap (see NOTE_parser_fix.md)."""
     if not text:
         return None
-    m = re.findall(r"ANSWER:\s*\$?(-?\d[\d,]*\.?\d*)", text, flags=re.I)
-    if not m:
-        m = re.findall(r"\$?(-?\d[\d,]*\.\d+|-?\d[\d,]*)", text)
+    m = re.findall(rf"ANSWER\s*:\s*{_WRAP}\$?\s*(-?\d[\d,]*\.?\d*)", text, flags=re.I)
     if not m:
         return None
     try:
@@ -28,12 +37,35 @@ def parse_answer(text: str):
         return None
 
 
-def parse_answer_word(text: str):
-    """Pull the first word after the last 'ANSWER:' for single-word (text) answers."""
+# Fallback filler/refusal blocklist for text problems that carry no explicit `options` set.
+_NONANSWER = {
+    "please", "unable", "cannot", "cant", "none", "nobody", "noone", "unknown", "unclear",
+    "insufficient", "sorry", "i", "no", "not", "na", "n", "without", "need", "more",
+    "there", "the", "a", "an", "sufficient", "determine", "provide", "details", "detail",
+    "information", "info", "memory", "context", "unsure", "unspecified", "undetermined",
+    "indeterminate", "ambiguous", "uncertain", "missing", "lacking", "given", "based",
+}
+
+
+def parse_answer_word(text: str, options=None):
+    """The single-token answer on the last 'ANSWER:' line. The symbolic answer space is CLOSED:
+    every valid answer is one of the problem's own candidate entities. When `options` is given we
+    accept the parsed token only if it is one of them (returning the canonical-cased option) and
+    treat anything else -- "Unable", "It", "I", any refusal/prose word -- as an abstention. That is
+    a real validator against the known answer set, not a guess at what filler looks like; the
+    blocklist path is only a fallback for problems with no declared options."""
     if not text:
         return None
-    m = re.findall(r"ANSWER:\s*([A-Za-z]+)", text, flags=re.I)
-    return m[-1] if m else None
+    m = re.findall(rf"ANSWER\s*:\s*{_WRAP}([A-Za-z][A-Za-z/]*)", text, flags=re.I)
+    if not m:
+        return None
+    w = m[-1]
+    if options:
+        for o in options:
+            if w.lower() == str(o).lower():
+                return o            # commit only to a recognised candidate
+        return None                 # an unrecognised word == abstention, never a phantom commit
+    return None if w.lower() in _NONANSWER else w
 
 
 @dataclass

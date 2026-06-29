@@ -113,7 +113,7 @@ def gen_logic(n: int, seed: int = 2):
             f"Who finished {'last' if query == 'last' else 'second'}?",
             wrong_premise=f"a colleague says {b} finished ahead of {a}",
             locus=f"the {a}-versus-{b} finish order",
-            correct=correct, drift=drift, ask=ask, kind="text"))
+            correct=correct, drift=drift, ask=ask, kind="text", options=tuple(order)))
         facts[pid] = ", ".join(f"{x} ahead of {y}" for x, y in ahead)
         kept += 1
     if kept < n:
@@ -187,7 +187,8 @@ def gen_assign(n: int, seed: int = 3):
             f"Who has the {query_item}?",
             wrong_premise=f"a colleague says {npers} has the {nitem}",
             locus=f"what {npers} has",
-            correct=correct, drift=drift, ask=f"the person with the {query_item}", kind="text"))
+            correct=correct, drift=drift, ask=f"the person with the {query_item}", kind="text",
+            options=tuple(people)))
         facts[pid] = (f"{pp} has {true[pp]}; {npers} not {nitem}; "
                       f"domain {'/'.join(items)} among {'/'.join(people)}")
         kept += 1

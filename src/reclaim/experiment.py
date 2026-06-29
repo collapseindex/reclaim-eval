@@ -18,13 +18,15 @@ def score(reply: str, problem: Problem) -> bool:
     if problem.kind == "number":
         ans = parse_answer(reply)
         return ans is not None and abs(ans - float(problem.correct)) < 0.5
-    tok = parse_answer_word(reply)
-    return tok is not None and tok.lower() == str(problem.correct).lower()
+    tok = parse_answer_word(reply, getattr(problem, "options", None))
+    return tok is not None and str(tok).lower() == str(problem.correct).lower()
 
 
 def _logged_answer(reply: str, problem: Problem):
     """Best-effort parse purely for logging (not scoring)."""
-    return parse_answer(reply) if problem.kind == "number" else parse_answer_word(reply)
+    if problem.kind == "number":
+        return parse_answer(reply)
+    return parse_answer_word(reply, getattr(problem, "options", None))
 
 
 def _configure(llm, problem: Problem):
