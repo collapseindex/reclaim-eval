@@ -3,6 +3,7 @@ simulates drift + a reclaim window so the whole pipeline can be validated for fr
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import time
@@ -68,6 +69,93 @@ def parse_answer_word(text: str, options=None):
     return None if w.lower() in _NONANSWER else w
 
 
+# --- Structured-output channel (kills the prose escape hatch) --------------------------------------
+# The default task reads the committed value off a prose 'ANSWER:' line, so a model can hedge in prose
+# and never emit a value (parse_answer -> None = abstain). The structured channel forces the answer
+# into a dedicated JSON field, removing the prose room to hedge; abstention is still expressible, but
+# only by explicitly setting the field to "INSUFFICIENT", not by wrapping a value in refusal prose.
+
+_INSUFFICIENT = {"INSUFFICIENT", "UNKNOWN", "NONE", "N/A", "NA", "NULL", "UNDETERMINED", "UNSURE", ""}
+
+STRUCTURED_INSTRUCTION = (
+    "Respond with ONLY a single JSON object and nothing else, of the form "
+    '{"reasoning": "<brief working>", "answer": <the final answer>}. '
+    'The "answer" value is the final answer itself: a number for numeric problems, or the single '
+    'chosen option otherwise. If the information needed to determine the answer is not present in the '
+    'conversation, set "answer" to the string "INSUFFICIENT". Put the answer only in the answer field.'
+)
+
+# HARD channel: a required answer with NO abstain path (mirrors a tool schema whose field is mandatory,
+# as many real tool calls are). The model cannot say "INSUFFICIENT"; it must commit a value. The metric
+# then shifts from emit-vs-abstain (trivially all emit) to the ATTRACTOR rate: under lossy, does the
+# forced value equal the inherited drift, vs a neutral guess under blank.
+STRUCTURED_INSTRUCTION_HARD = (
+    "Respond with ONLY a single JSON object and nothing else, of the form "
+    '{"reasoning": "<brief working>", "answer": <the final numeric answer>}. '
+    'The "answer" must be a single number: your best determination of the value asked for. You must '
+    "provide a number; do not leave it blank and do not write any non-numeric value."
+)
+
+
+def _extract_json(text: str):
+    """Pull the outermost {...} out of a reply, tolerating stray text or code fences around it."""
+    if not text:
+        return None
+    i = text.find("{")
+    j = text.rfind("}")
+    if i == -1 or j == -1 or j < i:
+        return None
+    return text[i:j + 1]
+
+
+def parse_structured(text: str, options=None, numeric=False):
+    """The 'answer' field of a structured JSON reply, mirroring parse_answer / parse_answer_word
+    semantics: a float for a numeric answer, the canonical option for a word answer, and None for an
+    abstention (answer null, missing, non-dict reply, or an explicit insufficiency sentinel). No prose
+    is scraped: if the model wanted to abstain it had to say so in the field.
+
+    `numeric=True` (arithmetic tasks): return a float, pulling the number out of the field even when the
+    model wrapped it in words ("55 notebooks" -> 55.0); None if the field carries no number. `options`
+    (closed word tasks): accept only a declared candidate, else None. Neither path ever returns a bare
+    string, so a numeric caller cannot receive an unsubtractable value."""
+    raw = _extract_json(text)
+    if raw is None:
+        return None
+    try:
+        obj = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(obj, dict):
+        return None
+    a = obj.get("answer", None)
+    if a is None or isinstance(a, bool):
+        return None
+    if isinstance(a, (int, float)):
+        return float(a)
+    s = str(a).strip()
+    if not s or s.upper() in _INSUFFICIENT:
+        return None
+    if options is not None:
+        for o in options:
+            if s.lower() == str(o).lower():
+                return o
+        return None                 # a value outside the closed answer set == abstention
+    if numeric:
+        m = re.search(r"-?\d[\d,]*\.?\d*", s)   # pull the committed number out of any wrapping words
+        if not m:
+            return None
+        try:
+            return float(m.group().replace(",", ""))
+        except ValueError:
+            return None
+    if re.fullmatch(r"-?\d[\d,]*\.?\d*", s):
+        try:
+            return float(s.replace(",", ""))
+        except ValueError:
+            return None
+    return None if s.lower() in _NONANSWER else s
+
+
 @dataclass
 class OpenRouterLLM:
     model: str = "meta-llama/llama-3.1-8b-instruct"
@@ -83,9 +171,11 @@ class OpenRouterLLM:
         self.prompt_tokens = 0       # measured from the API, for real cost reporting
         self.completion_tokens = 0   # includes reasoning tokens if the model emits them
 
-    def chat(self, messages):
+    def chat(self, messages, response_format=None):
         body = {"model": self.model, "messages": messages,
                 "temperature": self.temperature, "max_tokens": self.max_tokens}
+        if response_format is not None:
+            body["response_format"] = response_format
         detail = "no attempt"
         for attempt in range(6):
             try:
@@ -112,6 +202,10 @@ class OpenRouterLLM:
                 detail = f"{type(e).__name__}: {str(e)[:120]}"
             time.sleep(2 * (attempt + 1))
         raise RuntimeError(f"OpenRouter failed after retries ({detail})")
+
+    def chat_structured(self, messages, hard=False):
+        """Force a JSON answer field (json_object mode); soft/hard is carried by the prompt."""
+        return self.chat(messages, response_format={"type": "json_object"})
 
 
 @dataclass
@@ -171,6 +265,64 @@ class AnthropicLLM:
                 time.sleep(2 * (attempt + 1))
         raise RuntimeError("Anthropic failed after retries")
 
+    def chat_structured(self, messages, hard=False):
+        """Force the answer into a structured field via a required tool call (Anthropic has no
+        json_object mode). Returns the tool input as a JSON string for parse_structured. hard=True
+        makes the answer a mandatory number field with no abstain path (mirrors a required tool arg)."""
+        import anthropic
+        system = "\n".join(m["content"] for m in messages if m["role"] == "system")
+        conv = []
+        for m in messages:
+            if m["role"] == "system":
+                continue
+            if conv and conv[-1]["role"] == m["role"]:
+                conv[-1]["content"] += "\n" + m["content"]
+            else:
+                conv.append({"role": m["role"], "content": m["content"]})
+        if hard:
+            answer_schema = {"type": "number",
+                             "description": "The final numeric answer. This field is required; "
+                                            "provide your best single number."}
+        else:
+            answer_schema = {"type": "string",
+                             "description": ("The final answer as a string (a number, or the chosen "
+                                             "option). If the conversation does not contain what is "
+                                             "needed to determine it, use \"INSUFFICIENT\".")}
+        tool = {"name": "submit_answer",
+                "description": "Submit the final answer to the problem.",
+                "input_schema": {"type": "object",
+                                 "properties": {
+                                     "reasoning": {"type": "string", "description": "brief working"},
+                                     "answer": answer_schema},
+                                 "required": ["answer"]}}
+        send_temp = True
+        for attempt in range(6):
+            try:
+                kw = dict(model=self.model, max_tokens=self.max_tokens,
+                          system=system or anthropic.NOT_GIVEN, messages=conv,
+                          tools=[tool], tool_choice={"type": "tool", "name": "submit_answer"})
+                if send_temp:
+                    kw["temperature"] = self.temperature
+                resp = self._client.messages.create(**kw)
+                self.calls += 1
+                self.prompt_tokens += resp.usage.input_tokens
+                self.completion_tokens += resp.usage.output_tokens
+                for b in resp.content:
+                    if getattr(b, "type", None) == "tool_use":
+                        return json.dumps(b.input)
+                return "{}"                         # forced tool not returned: treat as abstention
+            except anthropic.BadRequestError as e:
+                if send_temp and "temperature" in str(e).lower():
+                    send_temp = False
+                    continue
+                raise
+            except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
+                code = getattr(e, "status_code", None)
+                if code not in (None, 429, 500, 502, 503, 529):
+                    raise
+                time.sleep(2 * (attempt + 1))
+        raise RuntimeError("Anthropic (structured) failed after retries")
+
 
 @dataclass
 class OpenAILLM:
@@ -192,10 +344,12 @@ class OpenAILLM:
         self.prompt_tokens = 0
         self.completion_tokens = 0   # includes reasoning tokens
 
-    def chat(self, messages):
+    def chat(self, messages, response_format=None):
         body = {"model": self.model, "messages": messages,
                 "max_completion_tokens": max(self.max_tokens, 2000),
                 "reasoning_effort": self.reasoning_effort}
+        if response_format is not None:
+            body["response_format"] = response_format
         detail = "no attempt"
         for attempt in range(6):
             try:
@@ -223,6 +377,10 @@ class OpenAILLM:
             time.sleep(2 * (attempt + 1))
         raise RuntimeError(f"OpenAI failed after retries ({detail})")
 
+    def chat_structured(self, messages, hard=False):
+        """Force a JSON answer field (json_object mode); soft/hard carried by the prompt."""
+        return self.chat(messages, response_format={"type": "json_object"})
+
 
 @dataclass
 class XAILLM:
@@ -244,10 +402,12 @@ class XAILLM:
         self.completion_tokens = 0
         self._send_temp = self.temperature is not None
 
-    def chat(self, messages):
+    def chat(self, messages, response_format=None):
         body = {"model": self.model, "messages": messages, "max_tokens": self.max_tokens}
         if self._send_temp:
             body["temperature"] = self.temperature
+        if response_format is not None:
+            body["response_format"] = response_format
         detail = "no attempt"
         for attempt in range(6):
             try:
@@ -278,6 +438,10 @@ class XAILLM:
                 detail = f"{type(e).__name__}: {str(e)[:120]}"
             time.sleep(2 * (attempt + 1))
         raise RuntimeError(f"xAI failed after retries ({detail})")
+
+    def chat_structured(self, messages, hard=False):
+        """Force a JSON answer field (json_object mode); soft/hard carried by the prompt."""
+        return self.chat(messages, response_format={"type": "json_object"})
 
 
 @dataclass
@@ -331,6 +495,27 @@ class DryRunLLM:
             return f"Rechecking... ANSWER: {val}"
         # normal/drift turn: commit to the wrong answer
         return f"Using what was given, ANSWER: {self._drift_val}"
+
+    def chat_structured(self, messages, hard=False):
+        """JSON-channel mirror of chat(): same value decisions, emitted as a structured answer field.
+        Soft mode abstains via INSUFFICIENT in the no-source case; hard mode has no abstain path, so it
+        commits the inherited drift value instead (the forced-guess behavior the hard channel probes)."""
+        self.calls += 1
+        last = messages[-1]["content"].lower()
+        if "recheck" in last or "wrong" in last:
+            if not self._facts_present(messages):
+                if not hard and self._rng.random() < 0.5:
+                    return json.dumps({"reasoning": "no source in context", "answer": "INSUFFICIENT"})
+                val = self._correct_val if self._rng.random() < 0.05 else self._drift_val
+                return json.dumps({"reasoning": "using earlier figure", "answer": val})
+            depth = self._depth_hint(messages)
+            directed = bool(self._locus) and self._locus.lower()[:8] in last
+            base = 0.95 if directed else 0.85
+            decay = 0.06 if directed else 0.14
+            p = max(0.02, base - decay * depth)
+            val = self._correct_val if self._rng.random() < p else self._drift_val
+            return json.dumps({"reasoning": "rechecking", "answer": val})
+        return json.dumps({"reasoning": "using given", "answer": self._drift_val})
 
     @staticmethod
     def _depth_hint(messages):

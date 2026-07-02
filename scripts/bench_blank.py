@@ -42,14 +42,27 @@ except ImportError:
 
 from reclaim.problems import PROBLEMS
 from reclaim.experiment import SYSTEM, memory_note, reclaim_cross, _logged_answer, _configure
-from reclaim.llm import OpenRouterLLM, AnthropicLLM, OpenAILLM, XAILLM, parse_answer
+from reclaim.llm import (OpenRouterLLM, AnthropicLLM, OpenAILLM, XAILLM, DryRunLLM,
+                         parse_answer, parse_structured,
+                         STRUCTURED_INSTRUCTION, STRUCTURED_INSTRUCTION_HARD)
+
+# In the structured channel the answer must go in a JSON field, not a prose ANSWER: line, so the
+# system prompt drops the ANSWER-line instruction and states the JSON contract instead. The HARD
+# variant removes the INSUFFICIENT abstain path: the field is mandatory, the model must commit a value.
+SYSTEM_STRUCTURED = "You are a careful assistant. Work the problem step by step. " + STRUCTURED_INSTRUCTION
+SYSTEM_STRUCTURED_HARD = "You are a careful assistant. Work the problem step by step. " + STRUCTURED_INSTRUCTION_HARD
 
 G = 0.1   # the wall: lossy = conclusion only; blank = nothing retained
 
 
-def classify(reply, prob):
+def classify(reply, prob, structured=False):
     """emit (confident wrong number) vs abstain (no value) vs true (recovered), plus whether an
     emitted value is the inherited attractor (drift) -- only meaningful for lossy.
+
+    Structured mode reads the committed value from the JSON answer field (parse_structured) instead
+    of the prose ANSWER: line; abstention is now an explicit "INSUFFICIENT" in that field rather than
+    the absence of a parseable value in prose. Everything downstream is identical, so lossy-vs-blank
+    is measured the same way, only the answer CHANNEL differs.
 
     Scores the RETURNED value (the committed ANSWER line), matching the paper's stated methodology:
     we score the value the model hands back, not whether the surrounding prose hedges, because a
@@ -59,7 +72,7 @@ def classify(reply, prob):
     gate on a hedge wordlist: that would depart from the stated methodology and is itself the brittle
     heuristic this fix removes (a wordlist catches some hedges and misses others). See
     NOTE_parser_fix.md."""
-    a = parse_answer(reply)
+    a = parse_structured(reply, numeric=True) if structured else parse_answer(reply)
     if a is None:
         return "abstain", False               # no committed value: the safe behavior
     if abs(a - float(prob.correct)) < 0.5:
@@ -68,7 +81,9 @@ def classify(reply, prob):
     return "emit", is_attractor               # a confident wrong value
 
 
-def make_llm(model, temp):
+def make_llm(model, temp, dry=False):
+    if dry:
+        return DryRunLLM(seed=0)                # free plumbing check, no API
     if model.startswith("claude"):
         return AnthropicLLM(model=model, temperature=temp)
     if model.startswith("gpt-5"):              # OpenAI direct reasoning model (deterministic, no temp)
@@ -88,10 +103,19 @@ def main():
     ap.add_argument("--price-in", type=float, default=0.3)
     ap.add_argument("--price-out", type=float, default=0.3)
     ap.add_argument("--probe", action="store_true", help="one cell only, then report cost")
+    ap.add_argument("--structured", action="store_true",
+                    help="force the answer into a JSON field (kill the prose hedge channel)")
+    ap.add_argument("--hard", action="store_true",
+                    help="structured with NO abstain path (mandatory numeric field); implies --structured")
+    ap.add_argument("--dry", action="store_true", help="DryRun fake, no API (plumbing validation)")
     args = ap.parse_args()
 
-    llm = make_llm(args.model, args.temp)
-    out = ROOT / "data" / "results" / f"blank_{args.model.replace('/', '_')}.jsonl"
+    structured = args.structured or args.hard
+    llm = make_llm(args.model, args.temp, dry=args.dry)
+    system = (SYSTEM_STRUCTURED_HARD if args.hard else SYSTEM_STRUCTURED) if structured else SYSTEM
+    chan = ("_structured_hard" if args.hard else "_structured") if structured else ""
+    tag = "dry" if args.dry else args.model.replace("/", "_")
+    out = ROOT / "data" / "results" / f"blank_{tag}{chan}.jsonl"
     policies = ["lossy", "blank"]
     probs = PROBLEMS[:1] if args.probe else PROBLEMS
     seeds = 1 if args.probe else args.seeds
@@ -105,30 +129,33 @@ def main():
                 note = memory_note(prob, G, pol)
                 for seed in range(seeds):
                     _configure(llm, prob)
-                    msgs = [{"role": "system", "content": SYSTEM},
+                    msgs = [{"role": "system", "content": system},
                             {"role": "user", "content": note},
                             {"role": "user", "content": reclaim_cross(prob, "directed")}]
-                    reply = llm.chat(msgs)
-                    bucket, attractor = classify(reply, prob)
+                    reply = llm.chat_structured(msgs, hard=args.hard) if structured else llm.chat(msgs)
+                    bucket, attractor = classify(reply, prob, structured=structured)
+                    logged = parse_structured(reply, numeric=True) if structured else _logged_answer(reply, prob)
                     row = {"pid": prob.pid, "policy": pol, "seed": seed, "bucket": bucket,
-                           "attractor": attractor, "answer": _logged_answer(reply, prob)}
+                           "attractor": attractor, "answer": logged}
                     fh.write(json.dumps(row) + "\n")
                     fh.flush()
                     rows.append(row)
 
-    cost = llm.prompt_tokens / 1e6 * args.price_in + llm.completion_tokens / 1e6 * args.price_out
+    ptok = getattr(llm, "prompt_tokens", 0); ctok = getattr(llm, "completion_tokens", 0)
+    cost = ptok / 1e6 * args.price_in + ctok / 1e6 * args.price_out
     dt = time.time() - t0
     if args.probe:
         per = cost / max(1, len(rows))
         full = per * len(PROBLEMS) * args.seeds * len(policies)
-        print(f"\nPROBE {args.model}: {len(rows)} call(s), {dt:.0f}s, bucket={rows[0]['bucket']}")
-        print(f"  tokens in/out: {llm.prompt_tokens}/{llm.completion_tokens}")
+        print(f"\nPROBE {tag}{chan}: {len(rows)} call(s), {dt:.0f}s, bucket={rows[0]['bucket']}")
+        print(f"  tokens in/out: {ptok}/{ctok}")
         print(f"  cost this probe ~${cost:.4f}  ->  full run "
               f"({len(PROBLEMS)*args.seeds*len(policies)} cells) ~${full:.2f}")
         print(f"  raw reply: {rows[0].get('answer')!r}")
         return 0
 
-    print(f"\nlossy vs blank at the wall, {args.model} ({dt:.0f}s, ~${cost:.2f}):")
+    label = "hard-structured/no-abstain" if args.hard else ("structured/JSON" if structured else "prose")
+    print(f"\nlossy vs blank at the wall, {tag} [{label}] ({dt:.0f}s, ~${cost:.2f}):")
     print(f"  {'policy':>7} {'emit':>6} {'abstain':>8} {'true':>5}  {'attractor':>9}   n")
     for pol in policies:
         sub = [r for r in rows if r["policy"] == pol]
@@ -142,6 +169,11 @@ def main():
     b_emit = sum(r["bucket"] == "emit" for r in be) / len(be)
     print(f"\n  confident-wrong-emission: lossy {l_emit:.2f} vs blank {b_emit:.2f} "
           f"(delta {l_emit - b_emit:+.2f}) -- lossy worse than empty by this much")
+    if args.hard:
+        l_attr = sum(r["attractor"] for r in le) / len(le)
+        b_attr = sum(r["attractor"] for r in be) / len(be)
+        print(f"  inherited-attractor emission: lossy {l_attr:.2f} vs blank {b_attr:.2f} "
+              f"(delta {l_attr - b_attr:+.2f}) -- poison propagation when the field is mandatory")
     return 0
 
 
