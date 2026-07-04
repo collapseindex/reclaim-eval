@@ -8,6 +8,11 @@ paper_acl/
 
 # private working notes (local only)
 DEPLOYMENT.md
+NOTE_*.md
+
+# Tier 2 mechanistic-probe track: parked, exploratory, kept local (see tier2/FINDINGS.md)
+tier2/
+tier2_routing*.json
 
 # LaTeX build artifacts
 *.aux
