@@ -30,3 +30,6 @@ tier2_routing*.json
 # paper sources live on arXiv, not in the harness repo
 paper_tmlr/
 paper_emnlp/
+
+# generated prevalence plot (regenerate via bench_prevalence.py)
+prevalence.png
