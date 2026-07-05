@@ -315,7 +315,9 @@ the **same depth** on the 8B and the frontier reader: a budget horizon, not a ca
 - **Silent failure, and the fix for it.** Past its boundary `source_first` does not abstain; it
   confidently sums the *partial* source (Opus: 96/96 silent mis-sums). A one-line **completeness
   tag** (k of N items preserved) flips that to 94/96 flagged-or-abstained. The tag is itself
-  capability-gated: a weak 8B reader honors it only 6/96. `bench_completeness.py`.
+  capability-gated: a weak 8B reader honors it only 6/96 (`bench_completeness.py`). A **write-time
+  recompute certificate** removes the reader from the loop entirely, splitting reclaim 0.93 (pass) vs
+  0.00 (flag) *capability-free*, and closes that gap (`analyze_certificate.py`).
 
 ### Real conversational memory (MultiWOZ)
 
@@ -330,10 +332,22 @@ still emits the drifted time on its structured answer line *half* the time. `ben
 
 `source_first` works on compact, checkable sources; how much real memory is that? We classify 100
 conversations from each of three corpora (general chat, tool-use, agentic). The absolute share is
-**not** identified (two LLM labelers disagree, kappa=0.15), so we report no point estimate. But the
-**ordering is robust** under both labelers and non-overlapping: compact-source content is far more
-prevalent in tool-use and agentic memory than in open chat (llama 0.78 / 0.84 / 0.99; grok 0.22 /
-0.57 / 0.61, for chat / tool / agentic). The high-stakes regime is the compact one. `bench_prevalence.py`.
+**not** identified by the LLM labelers (they disagree, kappa=0.15), so we report no point estimate, but
+three independent lines converge:
+
+1. **The ordering is robust** under both LLM labelers and non-overlapping: compact-source content is far
+   more prevalent in tool-use and agentic memory than in open chat (llama 0.78 / 0.84 / 0.99; grok 0.22 /
+   0.57 / 0.61, for chat / tool / agentic).
+2. A **judge-free deterministic floor** (a checkable value stated and then recurring; no model call)
+   reproduces that ordering at **0.10 / 0.48 / 0.86** for chat / tool / agentic, validated by 0.90-1.00
+   precision against the LLM labels. `prevalence_floor.py`.
+3. The disagreement is the labelers', not the construct's: **two independent human raters agree at
+   kappa=0.80** (vs the LLMs' 0.15), so the compact/diffuse distinction is human-stable and the low LLM
+   agreement is model labeling noise. The blind form, both raters' labels, and scoring are in
+   [`annotation/`](annotation/).
+
+The high-stakes agentic regime is thus floored at **0.86, judge-free**. `bench_prevalence.py`,
+`prevalence_floor.py`.
 
 ## Run
 
@@ -364,6 +378,8 @@ python scripts/bench_claude.py --model claude-sonnet-4-6           # full board 
 # analysis (no API):
 python scripts/analyze_realworld.py "data/results/realworld_*arith*.jsonl"  # RR + bootstrap CIs
 python scripts/confab_audit.py "data/results/realworld_*.jsonl"             # invented-number count
+python scripts/analyze_certificate.py                                       # write-time recompute certificate (0.93 pass vs 0.00 flag)
+python scripts/prevalence_floor.py                                          # judge-free compact-source floor (re-streams corpora from HF, no key)
 
 # every other paper experiment has its own bench in scripts/ (cascade, multiwoz, sizesweep,
 # noisysweep, completeness, prevalence, adversarial, blank, endogenous, ...); the new ones take
@@ -396,7 +412,10 @@ scripts/      run_pilot.py · bench_realworld.py (deployed systems) · bench_cla
               replay) · bench_cascade.py · bench_multiwoz.py · bench_sizesweep.py · bench_noisysweep.py
               · bench_completeness.py · bench_prevalence.py · bench_adversarial.py (the boundary,
               cascade, dialogue, and prevalence experiments) · analyze_realworld.py (bootstrap CIs)
-              · reproduce_tables.py (every table, no API)
+              · analyze_certificate.py (write-time certificate) · prevalence_floor.py (judge-free
+              compact-source floor) · reproduce_tables.py (every table, no API)
+annotation/   the blind inter-rater annotation set: form + rubric, both raters' labels (kappa=0.80),
+              and scoring (score_kappa.py, score_multi.py)
 tests/        test_pipeline.py · test_probe.py (free, can-fail)
 ```
 
