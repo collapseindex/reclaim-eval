@@ -15,6 +15,7 @@ paper_acl/
 # private working notes (local only)
 DEPLOYMENT.md
 NOTE_*.md
+!NOTE_parser_fix.md   # except the v2 parser-correction record (intentionally public)
 
 # Tier 2 mechanistic-probe track: parked, exploratory, kept local (see tier2/FINDINGS.md)
 tier2/
