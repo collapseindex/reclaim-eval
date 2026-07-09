@@ -21,7 +21,8 @@ def _rates(seeds=3):
 
 def test_parse_answer():
     assert parse_answer("blah ANSWER: 46") == 46.0
-    assert parse_answer("the total is $92.0") == 92.0
+    assert parse_answer("ANSWER: $92.0") == 92.0          # $/markdown tolerated after the marker
+    assert parse_answer("the total is $92.0") is None     # no ANSWER: marker => not a commit (v2 strict parser)
     assert parse_answer("no number here") is None
 
 

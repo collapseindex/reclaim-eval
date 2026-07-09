@@ -1,0 +1,4 @@
+{"board": 0, "policy": "source_first", "seed": 0, "model": "claude-sonnet-4-6", "won": false, "turns": 45, "distinct": 29, "redundant": 0, "invalid": 16, "hits": 5}
+{"board": 0, "policy": "lossy", "seed": 0, "model": "claude-sonnet-4-6", "won": false, "turns": 45, "distinct": 6, "redundant": 39, "invalid": 0, "hits": 2}
+{"board": 1, "policy": "source_first", "seed": 0, "model": "claude-sonnet-4-6", "won": false, "turns": 45, "distinct": 37, "redundant": 0, "invalid": 8, "hits": 7}
+{"board": 1, "policy": "lossy", "seed": 0, "model": "claude-sonnet-4-6", "won": false, "turns": 45, "distinct": 7, "redundant": 38, "invalid": 0, "hits": 4}

@@ -1,0 +1,2 @@
+{"idx": 1, "n": 8, "policy": "lossy_endo", "own_wrong": 290.0, "truth": 330.0, "answer": null, "bucket": "abstain"}
+{"idx": 1, "n": 8, "policy": "srcfirst_endo", "own_wrong": 290.0, "truth": 330.0, "answer": 330.0, "bucket": "true"}

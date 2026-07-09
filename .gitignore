@@ -1,7 +1,13 @@
 __pycache__/
 *.pyc
 .env
-data/
+# ignore everything under data/ EXCEPT the committed result snapshots the paper tables
+# reproduce from (data/results/*.jsonl|*.json); logs/backups/raw stay local
+data/*
+!data/results/
+data/results/*
+!data/results/*.jsonl
+!data/results/*.json
 .pytest_cache/
 paper/
 paper_acl/

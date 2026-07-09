@@ -1,0 +1,256 @@
+{"H": 1, "policy": "lossy", "planted": true, "store": 0, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 1, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 2, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 3, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 4, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 5, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 6, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 7, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 8, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 9, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 10, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 11, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 12, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 13, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 14, "per_hop": [false], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": true, "store": 15, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 0, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 1, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 2, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 3, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 4, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 5, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 6, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 7, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 8, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 9, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 10, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 11, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 12, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 13, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 14, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "lossy", "planted": false, "store": 15, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 1, "policy": "source_first", "planted": true, "store": 0, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 1, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 2, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 3, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 4, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 5, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 6, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 7, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 8, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 9, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 10, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 11, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 12, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 13, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 14, "per_hop": [false], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": true, "store": 15, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 0, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 1, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 2, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 3, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 4, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 5, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 6, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 7, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 8, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 9, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 10, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 11, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 12, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 13, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 14, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 1, "policy": "source_first", "planted": false, "store": 15, "per_hop": [true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "lossy", "planted": true, "store": 0, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 1, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 2, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 3, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 4, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 5, "per_hop": [true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 6, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 7, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 8, "per_hop": [true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 9, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 10, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 11, "per_hop": [true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 12, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 13, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 14, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": true, "store": 15, "per_hop": [false, false], "blast": 2, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 0, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 1, "per_hop": [true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 2, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 3, "per_hop": [true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 4, "per_hop": [true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 5, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 6, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 7, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 8, "per_hop": [true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 9, "per_hop": [true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 10, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 11, "per_hop": [true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 12, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 13, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 14, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "lossy", "planted": false, "store": 15, "per_hop": [true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 2, "policy": "source_first", "planted": true, "store": 0, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 1, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 2, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 3, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 4, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 5, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 6, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 7, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 8, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 9, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 10, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 11, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 12, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 13, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 14, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": true, "store": 15, "per_hop": [false, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 0, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 1, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 2, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 3, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 4, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 5, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 6, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 7, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 8, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 9, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 10, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 11, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 12, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 13, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 14, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 2, "policy": "source_first", "planted": false, "store": 15, "per_hop": [true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "lossy", "planted": true, "store": 0, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 1, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 2, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 3, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 4, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 5, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 6, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 7, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 8, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 9, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 10, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 11, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 12, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 13, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 14, "per_hop": [false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": true, "store": 15, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 0, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 1, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 2, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 3, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 4, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 5, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 6, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 7, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 8, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 9, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 10, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 11, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 12, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 13, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 14, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "lossy", "planted": false, "store": 15, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 4, "policy": "source_first", "planted": true, "store": 0, "per_hop": [false, true, true, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 1, "per_hop": [false, true, true, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 2, "per_hop": [false, true, true, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 3, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 4, "per_hop": [false, true, true, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 5, "per_hop": [false, true, true, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 6, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 7, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 8, "per_hop": [false, true, true, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 9, "per_hop": [false, true, true, true], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 10, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 11, "per_hop": [false, true, true, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 12, "per_hop": [false, true, true, true], "blast": 1, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 13, "per_hop": [false, true, true, true], "blast": 1, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 14, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": true, "store": 15, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 0, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 1, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 2, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 3, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 4, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 5, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 6, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 7, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 8, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 9, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 10, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 11, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 12, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 13, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 14, "per_hop": [true, true, true, true], "blast": 0, "reclaim": true, "source_complete": true, "mem_has_source_final": true}
+{"H": 4, "policy": "source_first", "planted": false, "store": 15, "per_hop": [true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "lossy", "planted": true, "store": 0, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 1, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 2, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 3, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 4, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 5, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 6, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 7, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 8, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 9, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 10, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 11, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 12, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 13, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 14, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": true, "store": 15, "per_hop": [false, false, false, false, false, false, false, false], "blast": 8, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 0, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 1, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 2, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 3, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 4, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 5, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 6, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 7, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 8, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 9, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 10, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 11, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 12, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 13, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 14, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "lossy", "planted": false, "store": 15, "per_hop": [true, true, true, true, true, true, true, true], "blast": 0, "reclaim": false, "source_complete": false, "mem_has_source_final": false}
+{"H": 8, "policy": "source_first", "planted": true, "store": 0, "per_hop": [false, true, true, true, true, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 1, "per_hop": [false, true, true, true, true, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 2, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 3, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 4, "per_hop": [false, true, true, true, true, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 5, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 6, "per_hop": [false, true, true, true, false, false, false, false], "blast": 5, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 7, "per_hop": [false, true, true, true, false, false, false, false], "blast": 5, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 8, "per_hop": [false, true, true, true, true, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 9, "per_hop": [false, true, true, true, false, false, false, false], "blast": 5, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 10, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 11, "per_hop": [false, true, true, true, true, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 12, "per_hop": [false, true, true, true, false, false, false, false], "blast": 5, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 13, "per_hop": [false, true, true, true, true, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 14, "per_hop": [false, true, true, true, true, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": true, "store": 15, "per_hop": [false, true, true, true, false, false, false, false], "blast": 5, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 0, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 1, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 2, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 3, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 4, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 5, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 6, "per_hop": [true, true, true, true, false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 7, "per_hop": [true, true, true, true, false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 8, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 9, "per_hop": [true, true, true, true, false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 10, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 11, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 12, "per_hop": [true, true, true, true, false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 13, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 14, "per_hop": [true, true, true, true, true, false, false, false], "blast": 3, "reclaim": false, "source_complete": false, "mem_has_source_final": true}
+{"H": 8, "policy": "source_first", "planted": false, "store": 15, "per_hop": [true, true, true, true, false, false, false, false], "blast": 4, "reclaim": false, "source_complete": false, "mem_has_source_final": true}

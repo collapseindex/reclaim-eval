@@ -1,0 +1,90 @@
+{
+  "llama": {
+    "lossy_emit": 0.16666666666666666,
+    "blank_emit": 0.0,
+    "delta": 0.16666666666666666,
+    "attractor": 0.10416666666666667,
+    "lossy_abstain": 0.8333333333333334,
+    "lossy_true": 0.0,
+    "n_lossy": 96,
+    "n_blank": 96,
+    "cost": 0.001
+  },
+  "qwen/qwen-2.5-7b-instruct": {
+    "lossy_emit": 0.9270833333333334,
+    "blank_emit": 0.5416666666666666,
+    "delta": 0.38541666666666674,
+    "attractor": 0.3541666666666667,
+    "lossy_abstain": 0.041666666666666664,
+    "lossy_true": 0.03125,
+    "n_lossy": 96,
+    "n_blank": 96,
+    "cost": 0.0058
+  },
+  "deepseek/deepseek-chat": {
+    "lossy_emit": 0.8645833333333334,
+    "blank_emit": 0.03125,
+    "delta": 0.8333333333333334,
+    "attractor": 0.3854166666666667,
+    "lossy_abstain": 0.11458333333333333,
+    "lossy_true": 0.020833333333333332,
+    "n_lossy": 96,
+    "n_blank": 96,
+    "cost": 0.0281
+  },
+  "openai/gpt-4o-mini": {
+    "lossy_emit": 0.0,
+    "blank_emit": 0.0,
+    "delta": 0.0,
+    "attractor": 0.0,
+    "lossy_abstain": 1.0,
+    "lossy_true": 0.0,
+    "n_lossy": 96,
+    "n_blank": 96,
+    "cost": 0.0123
+  },
+  "gpt-5.4": {
+    "lossy_emit": 0.0,
+    "blank_emit": 0.0,
+    "delta": 0.0,
+    "attractor": 0.0,
+    "lossy_abstain": 1.0,
+    "lossy_true": 0.0,
+    "n_lossy": 96,
+    "n_blank": 96,
+    "cost": 0.2853
+  },
+  "grok-4.3": {
+    "lossy_emit": 0.5729166666666666,
+    "blank_emit": 0.0,
+    "delta": 0.5729166666666666,
+    "attractor": 0.5729166666666666,
+    "lossy_abstain": 0.4270833333333333,
+    "lossy_true": 0.0,
+    "n_lossy": 96,
+    "n_blank": 96,
+    "cost": 0.2092
+  },
+  "claude-sonnet-4-6": {
+    "lossy_emit": 0.0,
+    "blank_emit": 0.0,
+    "delta": 0.0,
+    "attractor": 0.0,
+    "lossy_abstain": 1.0,
+    "lossy_true": 0.0,
+    "n_lossy": 96,
+    "n_blank": 96,
+    "cost": 0.4766
+  },
+  "claude-opus-4-8": {
+    "lossy_emit": 0.0,
+    "blank_emit": 0.0,
+    "delta": 0.0,
+    "attractor": 0.0,
+    "lossy_abstain": 1.0,
+    "lossy_true": 0.0,
+    "n_lossy": 96,
+    "n_blank": 96,
+    "cost": 3.3874
+  }
+}

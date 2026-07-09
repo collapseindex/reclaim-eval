@@ -1,0 +1,38 @@
+{
+  "n": 51,
+  "seed": 0,
+  "gold": 6,
+  "per_domain": {
+    "chat": {
+      "compact": 0.412,
+      "ci": [
+        0.176,
+        0.647
+      ],
+      "n": 17
+    },
+    "tool": {
+      "compact": 0.765,
+      "ci": [
+        0.529,
+        0.941
+      ],
+      "n": 17
+    },
+    "agentic": {
+      "compact": 1.0,
+      "ci": [
+        1.0,
+        1.0
+      ],
+      "n": 17
+    }
+  },
+  "kappa": {
+    "human_vs_llama": {
+      "three_way": 0.547,
+      "binary": 0.486,
+      "n": 51
+    }
+  }
+}

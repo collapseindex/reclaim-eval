@@ -1,0 +1,50 @@
+{
+  "claude-opus-4-8/source_first": {
+    "turns": 211,
+    "boards": 8,
+    "refire_rate": 0.004739336492890996,
+    "abstain_rate": 0.0,
+    "distinct_per_game": 26.25,
+    "hits_per_game": 6.75
+  },
+  "claude-opus-4-8/lossy": {
+    "turns": 240,
+    "boards": 8,
+    "refire_rate": 0.9083333333333333,
+    "abstain_rate": 0.0,
+    "distinct_per_game": 2.75,
+    "hits_per_game": 0.375
+  },
+  "claude-sonnet-4-6/source_first": {
+    "turns": 219,
+    "boards": 8,
+    "refire_rate": 0.0045662100456621,
+    "abstain_rate": 0.045662100456621,
+    "distinct_per_game": 26.0,
+    "hits_per_game": 7.375
+  },
+  "claude-sonnet-4-6/lossy": {
+    "turns": 240,
+    "boards": 8,
+    "refire_rate": 0.7708333333333334,
+    "abstain_rate": 0.0,
+    "distinct_per_game": 6.875,
+    "hits_per_game": 1.5
+  },
+  "llama/source_first": {
+    "turns": 240,
+    "boards": 8,
+    "refire_rate": 0.2916666666666667,
+    "abstain_rate": 0.09166666666666666,
+    "distinct_per_game": 18.5,
+    "hits_per_game": 2.75
+  },
+  "llama/lossy": {
+    "turns": 240,
+    "boards": 8,
+    "refire_rate": 0.42083333333333334,
+    "abstain_rate": 0.029166666666666667,
+    "distinct_per_game": 16.5,
+    "hits_per_game": 2.625
+  }
+}
