@@ -1,0 +1,113 @@
+{
+  "models": {
+    "Llama-3.2-3B": {
+      "model_id": "meta-llama/llama-3.2-3b-instruct",
+      "n_per_policy": 69,
+      "reclaim": {
+        "source_first": 0.634,
+        "lossy": 0.029,
+        "lossy_padded": 0.014,
+        "blank": 0.0
+      },
+      "lossy_stuck": 0.783,
+      "blank_stuck": 0.915
+    },
+    "Llama-3.1-8B": {
+      "model_id": "meta-llama/llama-3.1-8b-instruct",
+      "n_per_policy": 72,
+      "reclaim": {
+        "source_first": 0.958,
+        "lossy": 0.139,
+        "lossy_padded": 0.139,
+        "blank": 0.222
+      },
+      "lossy_stuck": 0.639,
+      "blank_stuck": 0.694
+    },
+    "Llama-3.3-70B": {
+      "model_id": "meta-llama/llama-3.3-70b-instruct",
+      "n_per_policy": 72,
+      "reclaim": {
+        "source_first": 1.0,
+        "lossy": 0.0,
+        "lossy_padded": 0.0,
+        "blank": 0.0
+      },
+      "lossy_stuck": 0.0,
+      "blank_stuck": 0.0
+    },
+    "GPT-4o-mini": {
+      "model_id": "openai/gpt-4o-mini",
+      "n_per_policy": 72,
+      "reclaim": {
+        "source_first": 0.597,
+        "lossy": 0.097,
+        "lossy_padded": 0.069,
+        "blank": 0.0
+      },
+      "lossy_stuck": 0.514,
+      "blank_stuck": 0.0
+    },
+    "Gemini-3.5-Flash": {
+      "model_id": "gemini-3.5-flash",
+      "n_per_policy": 72,
+      "reclaim": {
+        "source_first": 0.264,
+        "lossy": 0.111,
+        "lossy_padded": 0.042,
+        "blank": 0.0
+      },
+      "lossy_stuck": 0.069,
+      "blank_stuck": 0.0
+    },
+    "Grok-4.3": {
+      "model_id": "grok-4.3",
+      "n_per_policy": 72,
+      "reclaim": {
+        "source_first": 1.0,
+        "lossy": 0.0,
+        "lossy_padded": 0.0,
+        "blank": 0.0
+      },
+      "lossy_stuck": 0.042,
+      "blank_stuck": 0.0
+    },
+    "Claude-Opus-4.8": {
+      "model_id": "claude-opus-4-8",
+      "n_per_policy": 24,
+      "reclaim": {
+        "source_first": 0.833,
+        "lossy": 0.0,
+        "lossy_padded": 0.0,
+        "blank": 0.0
+      },
+      "lossy_stuck": 0.0,
+      "blank_stuck": 0.0
+    },
+    "GPT-5.4": {
+      "model_id": "gpt-5.4",
+      "n_per_policy": 24,
+      "reclaim": {
+        "source_first": 1.0,
+        "lossy": 0.0,
+        "lossy_padded": 0.0,
+        "blank": 0.0
+      },
+      "lossy_stuck": 0.0,
+      "blank_stuck": 0.0
+    }
+  },
+  "policies": [
+    "source_first",
+    "lossy",
+    "lossy_padded",
+    "blank"
+  ],
+  "pooled_reclaim": {
+    "source_first": 0.76,
+    "lossy": 0.057,
+    "lossy_padded": 0.04,
+    "blank": 0.033
+  },
+  "n_total": 1913
+}

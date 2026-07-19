@@ -1,0 +1,5 @@
+tau-bench/
+results/
+__pycache__/
+*.pyc
+.env

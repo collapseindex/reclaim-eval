@@ -9,6 +9,11 @@ that session carries forward. Whether a later correction can pull it back is dec
 welds in, keep the source and it stays fixable, at the same budget. This repo is the
 harness, the paired memory conditions, and the validators.
 
+**v0.3.0** adds a **τ-bench** replication (`tau_reclaim/`): the wall and source-first fix on a real
+deployed-agent benchmark, judge-free (scored by τ-bench's own database-state hash) and scale-invariant
+across an eight-model ladder from a 3B open model to the frontier (`grok-4.3`, `gemini-3.5-flash`,
+`claude-opus-4-8`, `gpt-5.4`).
+
 **v0.2.0** adds the memory-loop **cascade** (one error compounds across a chain, two models), a
 **prevalence audit** over real assistant/tool/agentic corpora, **MultiWOZ** (the wall on real fuzzy
 dialogue), the **silent-failure** boundary and its completeness-tag fix, and an adversarial-injection
@@ -269,6 +274,57 @@ Logic shows the same shape, softer: `source_first` 0.65/0.96/1.00, `source_first
    the boundary, it does not soften it.
 4. **The fix deploys.** `source_first_auto` (a one-prompt compress-toward-source policy on
    arbitrary input) beats all three shipped systems, not just the hand-built note.
+
+### The wall and fix replicate on τ-bench, a real deployed-agent benchmark (judge-free, scale-invariant)
+
+We port reclaim onto [τ-bench](https://github.com/sierra-research/tau-bench)'s retail domain: the
+load-bearing source is a task's requested option spec (recomputable from the product catalog), the
+salient conclusion is the committed exchange, and the proposed action is scored by τ-bench's *own*
+database-state hash (no judge). Across an eight-model ladder from a 3B open model to the frontier,
+`source_first` recovers the correct action and `lossy` never does:
+
+| model | source_first | lossy | lossy_padded | blank |
+|---|:--:|:--:|:--:|:--:|
+| llama-3.2-3b | 0.63 | 0.03 | 0.01 | 0.00 |
+| llama-3.1-8b | 0.96 | 0.14 | 0.14 | 0.22 |
+| llama-3.3-70b | 1.00 | 0.00 | 0.00 | 0.00 |
+| gpt-4o-mini | 0.60 | 0.10 | 0.07 | 0.00 |
+| gemini-3.5-flash | 0.26 | 0.11 | 0.04 | 0.00 |
+| grok-4.3 | 1.00 | 0.00 | 0.00 | 0.00 |
+| claude-opus-4.8 | 0.83 | 0.00 | 0.00 | 0.00 |
+| gpt-5.4 | 1.00 | 0.00 | 0.00 | 0.00 |
+| **pooled** | **0.76** | **0.06** | **0.04** | **0.03** |
+
+The wall is **scale-invariant** (lossy ≤ 0.14 at every scale), the length-matched `lossy_padded`
+control tracks lossy, and source-first recovery tracks reader capability (weak on the 3B / Gemini-Flash
+left edge, saturating at 1.00 on the strong models) exactly as the inverted-U predicts. This benchmark
+isolates the *wall and its fix*, not the worse-than-empty asymmetry: weaker models guess a wrong action
+even from a **blank** memory (llama-3.2-3b at 0.92), so `lossy` is not strictly worse than empty for
+them, and no model parrots the stale item id. Judge-free throughout (τ-bench's DB-state hash). Harness
+in `tau_reclaim/`.
+
+**At the wall, harm-vs-escalation is a model × interface property** (`tau_reclaim/run_forced.py`). Remove
+the abstain token and force a real tool call under a lossy memory. **(A) With a safe-exit tool available**
+(`transfer_to_human`), the frontier escalates (harm ≤ 0.07) while every open model *and* gpt-4o-mini
+commits the wrong exchange (0.78–0.96) — **llama-3.3-70b at 0.96, so not scale**. **(B) Strip the safe
+option** and three of four frontier models commit the error too (gpt-5.4 0.79, grok-4.3 0.92); only
+`claude-opus-4-8` refuses (≥0.75), declining "an irreversible exchange" without "the actual details."
+
+| model | (A) harm | (A) escalate | (B) harm | (B) refuse |
+|---|:--:|:--:|:--:|:--:|
+| llama-3.2-3b | 0.78 | 0.06 | — | — |
+| llama-3.1-8b | 0.90 | 0.00 | — | — |
+| llama-3.3-70b | 0.96 | 0.03 | — | — |
+| gpt-4o-mini | 0.82 | 0.00 | — | — |
+| gemini-3.5-flash | 0.00 | 0.85 | 0.47 | 0.00 |
+| grok-4.3 | 0.07 | 0.93 | 0.92 | 0.00 |
+| gpt-5.4 | 0.00 | 1.00 | 0.79 | 0.00 |
+| claude-opus-4-8 | 0.00 | 1.00 | 0.04 | **0.75** |
+
+A lossy memory is uncorrectable everywhere (the wall); whether that becomes a *harmful action* is a joint
+property of the model and the interface. Most models — frontier included — commit the error once the safe
+exit is gone. **Deployment prescription: keep an explicit escalate/abstain affordance in your tool
+schema; don't rely on the model to withhold the action.**
 
 ### Lossy is never better than empty, strictly worse if the model answers (the behavioral core)
 
