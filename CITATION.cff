@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite the paper below."
+title: "Reclaim Evaluation: A Lossy Memory Is Worse Than an Empty One"
+authors:
+  - family-names: Kwon
+    given-names: Alex
+    orcid: "https://orcid.org/0009-0002-2566-5538"
+    website: "https://collapseindex.org"
+date-released: 2026-06-24
+url: "https://arxiv.org/abs/2606.25449"
+repository-code: "https://github.com/collapseindex/reclaim-eval"
+keywords:
+  - AI safety
+  - LLM evaluation
+  - memory
+  - recoverability
+  - judge-free evaluation
+preferred-citation:
+  type: article
+  title: "Reclaim Evaluation: A Lossy Memory Is Worse Than an Empty One"
+  authors:
+    - family-names: Kwon
+      given-names: Alex
+      orcid: "https://orcid.org/0009-0002-2566-5538"
+  year: 2026
+  month: 6
+  journal: "arXiv preprint arXiv:2606.25449"
+  url: "https://arxiv.org/abs/2606.25449"
